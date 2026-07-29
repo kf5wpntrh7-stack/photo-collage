@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>手機圖片拼接 v5.3</title>
+<title>手機圖片拼接 v5.4</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -297,6 +297,28 @@ body.editor-locked{
   color:#dbe7ef;background:#0a0f13;font-weight:800;z-index:3
 }
 
+
+.compact-upload-card{margin-bottom:8px}
+.compact-upload{
+  min-height:58px;display:flex;align-items:center;gap:10px;padding:10px 12px;
+  cursor:pointer;background:#f8fafb;user-select:none;-webkit-user-select:none
+}
+.compact-upload-icon{
+  width:38px;height:38px;border-radius:11px;background:var(--navy);color:#fff;
+  display:grid;place-items:center;font-size:24px;font-weight:400;flex:0 0 auto
+}
+.compact-upload strong{display:block;font-size:15px}
+.compact-upload small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.bottom-inner.single{grid-template-columns:1fr}
+.bottom-inner.single .btn{width:100%}
+.empty-grid-slot{
+  position:absolute;border:2px dashed #aebbc5;background:rgba(255,255,255,.86);
+  border-radius:8px;display:grid;place-items:center;color:#61727e;
+  font-size:12px;font-weight:800;line-height:1.3;text-align:center;
+  pointer-events:auto;touch-action:manipulation
+}
+.empty-grid-slot span{font-size:23px;display:block}
+
 </style>
 </head>
 <body>
@@ -304,7 +326,7 @@ body.editor-locked{
   <div class="header-row">
     <div>
       <h1>🖼️ 手機圖片拼接</h1>
-      <div class="subtitle">v5.3・修正單格編輯無法開啟</div>
+      <div class="subtitle">v5.4・精簡格子＋穩定輸出</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -313,6 +335,17 @@ body.editor-locked{
 
 <input id="fileInput" type="file" accept="image/*" multiple hidden>
 <main>
+
+  <section class="card compact-upload-card">
+    <label class="compact-upload" for="fileInput">
+      <span class="compact-upload-icon">＋</span>
+      <span>
+        <strong>加照片</strong>
+        <small>可一次選多張</small>
+      </span>
+    </label>
+  </section>
+
 <section class="card">
     <div class="card-title">照片 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
     <div class="compact-note">左右滑動查看；旋轉後縮圖會立刻更新。</div>
@@ -357,17 +390,17 @@ body.editor-locked{
         <button class="layout" data-layout="grid2v" onclick="setLayout('grid2v',this)">
           <div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">2 上下</div>
         </button>
-        <button class="layout" data-layout="grid3top" onclick="setLayout('grid3top',this)">
-          <div class="layout-icon custom-grid"><span class="big-top"></span><span></span><span></span></div><div class="layout-label">上1下2</div>
+        <button class="layout" data-layout="grid2left" onclick="setLayout('grid2left',this)">
+          <div class="layout-icon icon-h"><span style="flex:2"></span><span style="flex:1"></span></div><div class="layout-label">左大右小</div>
         </button>
-        <button class="layout" data-layout="grid3left" onclick="setLayout('grid3left',this)">
-          <div class="layout-icon custom-grid left-big"><span class="big-left"></span><span></span><span></span></div><div class="layout-label">左1右2</div>
+        <button class="layout" data-layout="grid2right" onclick="setLayout('grid2right',this)">
+          <div class="layout-icon icon-h"><span style="flex:1"></span><span style="flex:2"></span></div><div class="layout-label">左小右大</div>
         </button>
-        <button class="layout" data-layout="grid3bottom" onclick="setLayout('grid3bottom',this)">
-          <div class="layout-icon custom-grid"><span></span><span></span><span class="big-bottom"></span></div><div class="layout-label">上2下1</div>
+        <button class="layout" data-layout="grid2top" onclick="setLayout('grid2top',this)">
+          <div class="layout-icon icon-v"><span style="flex:2"></span><span style="flex:1"></span></div><div class="layout-label">上大下小</div>
         </button>
-        <button class="layout" data-layout="grid3right" onclick="setLayout('grid3right',this)">
-          <div class="layout-icon custom-grid right-big"><span></span><span></span><span class="big-right"></span></div><div class="layout-label">左2右1</div>
+        <button class="layout" data-layout="grid2bottom" onclick="setLayout('grid2bottom',this)">
+          <div class="layout-icon icon-v"><span style="flex:1"></span><span style="flex:2"></span></div><div class="layout-label">上小下大</div>
         </button>
         <button class="layout" data-layout="grid4" onclick="setLayout('grid4',this)">
           <div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 格</div>
@@ -432,8 +465,7 @@ body.editor-locked{
 
 
 <div class="bottom">
-  <div class="bottom-inner">
-    <label class="btn add-photo-btn" for="fileInput">＋ 加照片</label>
+  <div class="bottom-inner single">
     <button id="exportBtn" class="btn primary" onclick="exportJpg()" disabled>輸出／分享 JPG</button>
   </div>
 </div>
@@ -472,7 +504,7 @@ const state = {
   ratio: localStorage.getItem("collage_ratio") || "1:1",
   photos: []
 };
-const capacities = {grid2h:2,grid2v:2,grid3top:3,grid3left:3,grid3bottom:3,grid3right:3,grid4:4,grid6v:6,grid9:9};
+const capacities = {grid2h:2,grid2v:2,grid2left:2,grid2right:2,grid2top:2,grid2bottom:2,grid4:4,grid6v:6,grid9:9};
 const joinCaps = {vertical3:3,horizontal3:3,vertical4:4,horizontal4:4};
 
 const fileInput = document.getElementById("fileInput");
@@ -481,6 +513,7 @@ const canvasStage = document.getElementById("canvasStage");
 const gridOverlay = document.getElementById("gridOverlay");
 let previewTimer = null;
 let previewHitboxes = [];
+let previewEmptyBoxes = [];
 
 let editorPhotoIndex = -1;
 let editorDraft = {x:0.5,y:0.5,zoom:1,panX:0,panY:0};
@@ -553,6 +586,9 @@ function setMode(mode, button){
   candidate.classList.add("active");
   document.getElementById("ratioWrap").classList.toggle("show", !!capacities[state.layout]);
   updateCapacityNote();
+  const gridCap = capacities[state.layout] || 0;
+  document.getElementById("exportBtn").disabled =
+    state.photos.length===0 || (state.layout.startsWith("grid") && state.photos.length < gridCap);
   if(state.photos.length) renderPreview();
 }
 
@@ -619,7 +655,9 @@ function renderPhotos(){
       </div>`;
     root.appendChild(chip);
   });
-  document.getElementById("exportBtn").disabled = state.photos.length===0;
+  const gridCap = capacities[state.layout] || 0;
+  const gridIncomplete = state.layout.startsWith("grid") && state.photos.length < gridCap;
+  document.getElementById("exportBtn").disabled = state.photos.length===0 || gridIncomplete;
   document.getElementById("emptyPhotoHint").classList.toggle("hidden", state.photos.length>0);
   updateCapacityNote();
 }
@@ -664,8 +702,12 @@ function resetAll(){
 function updateCapacityNote(){
   const cap = capacities[state.layout] || joinCaps[state.layout];
   const note = document.getElementById("capacityNote");
-  if(cap && state.photos.length > cap){
-    note.textContent = `此版型最多使用 ${cap} 張，目前有 ${state.photos.length} 張；輸出時只會使用前 ${cap} 張。`;
+  if(cap && state.layout.startsWith("grid") && state.photos.length < cap){
+    const missing = cap - state.photos.length;
+    note.textContent = `目前 ${state.photos.length} 張，還差 ${missing} 張；可點預覽中的空白格補照片。`;
+    note.classList.add("show");
+  }else if(cap && state.photos.length > cap){
+    note.textContent = `此版型使用前 ${cap} 張，目前其餘照片仍保留在照片列。`;
     note.classList.add("show");
   }else{
     note.classList.remove("show");
@@ -701,6 +743,7 @@ async function renderPreview(){
 function getGridConfig(layout){
   if(layout==="grid2h") return {cols:2,rows:1,cap:2};
   if(layout==="grid2v") return {cols:1,rows:2,cap:2};
+  if(["grid2left","grid2right","grid2top","grid2bottom"].includes(layout)) return {cols:2,rows:1,cap:2};
   if(layout==="grid4") return {cols:2,rows:2,cap:4};
   if(layout==="grid6v") return {cols:2,rows:3,cap:6};
   if(layout==="grid9") return {cols:3,rows:3,cap:9};
@@ -715,7 +758,7 @@ function ratioDimensions(ratio, longSide){
 
 async function drawCollage(canvas, preview){
   const photos = state.photos.slice();
-  if(preview) previewHitboxes = [];
+  if(preview){ previewHitboxes = []; previewEmptyBoxes = []; }
   if(!photos.length) return;
 
   let width, height, placements = [];
@@ -772,33 +815,23 @@ async function drawCollage(canvas, preview){
     height = dims.h;
     const gap = preview ? gapBase*1.5 : gapBase*4;
 
-    if(["grid3top","grid3left","grid3bottom","grid3right"].includes(state.layout)){
-      const used = photos.slice(0,3);
-      const halfW = (width-gap)/2;
-      const halfH = (height-gap)/2;
-      const maps = {
-        grid3top:[
-          {x:0,y:0,w:width,h:halfH},
-          {x:0,y:halfH+gap,w:halfW,h:halfH},
-          {x:halfW+gap,y:halfH+gap,w:halfW,h:halfH}
-        ],
-        grid3bottom:[
-          {x:0,y:0,w:halfW,h:halfH},
-          {x:halfW+gap,y:0,w:halfW,h:halfH},
-          {x:0,y:halfH+gap,w:width,h:halfH}
-        ],
-        grid3left:[
-          {x:0,y:0,w:halfW,h:height},
-          {x:halfW+gap,y:0,w:halfW,h:halfH},
-          {x:halfW+gap,y:halfH+gap,w:halfW,h:halfH}
-        ],
-        grid3right:[
-          {x:0,y:0,w:halfW,h:halfH},
-          {x:0,y:halfH+gap,w:halfW,h:halfH},
-          {x:halfW+gap,y:0,w:halfW,h:height}
-        ]
-      };
-      used.forEach((p,i)=>placements.push({photo:p,...maps[state.layout][i],mode:state.fit}));
+    if(["grid2left","grid2right","grid2top","grid2bottom"].includes(state.layout)){
+      const used = photos.slice(0,2);
+      let maps;
+      if(state.layout==="grid2left"){
+        const bigW=(width-gap)*2/3, smallW=(width-gap)/3;
+        maps=[{x:0,y:0,w:bigW,h:height},{x:bigW+gap,y:0,w:smallW,h:height}];
+      }else if(state.layout==="grid2right"){
+        const smallW=(width-gap)/3, bigW=(width-gap)*2/3;
+        maps=[{x:0,y:0,w:smallW,h:height},{x:smallW+gap,y:0,w:bigW,h:height}];
+      }else if(state.layout==="grid2top"){
+        const bigH=(height-gap)*2/3, smallH=(height-gap)/3;
+        maps=[{x:0,y:0,w:width,h:bigH},{x:0,y:bigH+gap,w:width,h:smallH}];
+      }else{
+        const smallH=(height-gap)/3, bigH=(height-gap)*2/3;
+        maps=[{x:0,y:0,w:width,h:smallH},{x:0,y:smallH+gap,w:width,h:bigH}];
+      }
+      used.forEach((p,i)=>placements.push({photo:p,...maps[i],mode:state.fit}));
     }else{
       const cfg = getGridConfig(state.layout);
       const used = photos.slice(0,cfg.cap);
@@ -819,12 +852,50 @@ async function drawCollage(canvas, preview){
     }
   }
 
-  const maxCanvasSide = preview ? 1800 : 8192;
+  const maxCanvasSide = preview ? 1800 : 5000;
   const scaleDown = Math.min(1, maxCanvasSide/Math.max(width,height));
   if(scaleDown < 1){
     width = Math.round(width*scaleDown);
     height = Math.round(height*scaleDown);
     placements = placements.map(p=>({...p,x:p.x*scaleDown,y:p.y*scaleDown,w:p.w*scaleDown,h:p.h*scaleDown}));
+  }
+
+
+  if(preview && state.layout.startsWith("grid")){
+    const cap = capacities[state.layout] || 0;
+    if(state.photos.length < cap){
+      const existing = placements.length;
+      if(["grid2left","grid2right","grid2top","grid2bottom"].includes(state.layout)){
+        // Recreate the second missing box from the same layout geometry.
+        const all = [];
+        const gap = state.gap*1.5*scaleDown;
+        if(state.layout==="grid2left"){
+          const bigW=(width-gap)*2/3, smallW=(width-gap)/3;
+          all.push({x:0,y:0,w:bigW,h:height},{x:bigW+gap,y:0,w:smallW,h:height});
+        }else if(state.layout==="grid2right"){
+          const smallW=(width-gap)/3, bigW=(width-gap)*2/3;
+          all.push({x:0,y:0,w:smallW,h:height},{x:smallW+gap,y:0,w:bigW,h:height});
+        }else if(state.layout==="grid2top"){
+          const bigH=(height-gap)*2/3, smallH=(height-gap)/3;
+          all.push({x:0,y:0,w:width,h:bigH},{x:0,y:bigH+gap,w:width,h:smallH});
+        }else{
+          const smallH=(height-gap)/3, bigH=(height-gap)*2/3;
+          all.push({x:0,y:0,w:width,h:smallH},{x:0,y:smallH+gap,w:width,h:bigH});
+        }
+        previewEmptyBoxes = all.slice(existing);
+      }else{
+        const cfg = getGridConfig(state.layout);
+        if(cfg){
+          const gap = state.gap*1.5*scaleDown;
+          const cellW=(width-gap*(cfg.cols-1))/cfg.cols;
+          const cellH=(height-gap*(cfg.rows-1))/cfg.rows;
+          for(let i=existing;i<cfg.cap;i++){
+            const col=i%cfg.cols,row=Math.floor(i/cfg.cols);
+            previewEmptyBoxes.push({x:col*(cellW+gap),y:row*(cellH+gap),w:cellW,h:cellH});
+          }
+        }
+      }
+    }
   }
 
   canvas.width = Math.max(1,Math.round(width));
@@ -927,6 +998,21 @@ function buildGridOverlay(){
       await openEditor(box.index, box);
     });
     gridOverlay.appendChild(btn);
+  });
+
+  previewEmptyBoxes.forEach((box, offset)=>{
+    const slot = document.createElement("button");
+    slot.type = "button";
+    slot.className = "empty-grid-slot";
+    slot.style.left = `${(box.x/previewCanvas.width)*100}%`;
+    slot.style.top = `${(box.y/previewCanvas.height)*100}%`;
+    slot.style.width = `${(box.w/previewCanvas.width)*100}%`;
+    slot.style.height = `${(box.h/previewCanvas.height)*100}%`;
+    slot.innerHTML = `<span>＋</span>補照片`;
+    slot.addEventListener("click",()=>{
+      fileInput.click();
+    });
+    gridOverlay.appendChild(slot);
   });
 }
 
@@ -1221,33 +1307,47 @@ editStage.addEventListener("wheel",e=>{
 
 async function exportJpg(){
   if(!state.photos.length) return;
+  const cap = capacities[state.layout] || 0;
+  if(state.layout.startsWith("grid") && state.photos.length < cap){
+    showToast(`還差 ${cap-state.photos.length} 張照片`);
+    return;
+  }
   const btn = document.getElementById("exportBtn");
   btn.disabled = true;
-  btn.textContent = "處理中…";
+  btn.textContent = "正在輸出…";
   try{
     const exportCanvas = document.createElement("canvas");
-    await drawCollage(exportCanvas, false);
-    const blob = await new Promise(resolve=>exportCanvas.toBlob(resolve,"image/jpeg",0.94));
-    if(!blob) throw new Error("blob failed");
-    const filename = "圖片拼接_" + new Date().toISOString().slice(0,10) + ".jpg";
-    const file = new File([blob], filename, {type:"image/jpeg"});
+    await drawCollage(exportCanvas,false);
+    const blob = await new Promise(resolve=>exportCanvas.toBlob(resolve,"image/jpeg",0.92));
+    if(!blob) throw new Error("JPG 建立失敗");
+    const filename = "圖片拼接_"+new Date().toISOString().slice(0,10)+".jpg";
+    const file = new File([blob],filename,{type:"image/jpeg"});
+    let shared = false;
     if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file], title:"圖片拼接"});
-    }else{
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = filename; a.click();
-      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      try{
+        await navigator.share({files:[file],title:"圖片拼接"});
+        shared = true;
+      }catch(err){
+        if(err && err.name==="AbortError") return;
+      }
+    }
+    if(!shared){
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;a.download=filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),2000);
       showToast("JPG 已輸出");
     }
-  }catch(e){
-    if(e && e.name !== "AbortError"){
-      console.error(e);
-      showToast("輸出失敗，請減少照片後再試");
-    }
+  }catch(err){
+    console.error(err);
+    showToast("輸出失敗，請重試或減少照片");
   }finally{
-    btn.disabled = state.photos.length===0;
-    btn.textContent = "輸出／分享 JPG";
+    const cap2=capacities[state.layout]||0;
+    btn.disabled=state.photos.length===0 || (state.layout.startsWith("grid") && state.photos.length<cap2);
+    btn.textContent="輸出／分享 JPG";
   }
 }
 
