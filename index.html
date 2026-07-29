@@ -6,100 +6,103 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>手機圖片拼接 v3</title>
+<title>手機圖片拼接 v4</title>
 <style>
 :root{
-  --bg:#eef1f4;
-  --card:#fff;
-  --navy:#263849;
-  --navy2:#3e566c;
-  --line:#dce3e8;
-  --text:#22303b;
-  --muted:#72808b;
-  --soft:#e9eef2;
-  --danger:#a24f4f;
+  --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
+  --text:#22303b; --muted:#72808b; --soft:#e9eef2; --danger:#a24f4f;
   --shadow:0 7px 24px rgba(31,45,57,.08);
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
 body{
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif
 }
-button,input,select{font:inherit}
+button,input{font:inherit}
 button{-webkit-tap-highlight-color:transparent}
+.hidden{display:none!important}
 header{
-  position:sticky;
-  top:0;
-  z-index:30;
-  color:#fff;
+  position:sticky;top:0;z-index:30;color:#fff;
   background:linear-gradient(145deg,var(--navy),var(--navy2));
   padding:calc(13px + env(safe-area-inset-top)) 14px 13px;
-  box-shadow:0 5px 18px rgba(21,34,45,.2);
+  box-shadow:0 5px 18px rgba(21,34,45,.2)
 }
 .header-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 h1{font-size:20px;margin:0}
 .subtitle{font-size:12px;opacity:.8;margin-top:3px}
-.reset-top{
-  border:0;background:rgba(255,255,255,.13);color:#fff;
-  border-radius:11px;padding:9px 11px;font-weight:700
+.reset-top{border:0;background:rgba(255,255,255,.13);color:#fff;border-radius:11px;padding:9px 11px;font-weight:700}
+
+.step-tabs{
+  position:sticky;top:calc(73px + env(safe-area-inset-top));z-index:25;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+  padding:8px 10px;background:rgba(238,241,244,.96);backdrop-filter:blur(12px)
 }
-main{max-width:760px;margin:auto;padding:11px 11px calc(105px + env(safe-area-inset-bottom))}
+.step-tab{
+  border:0;border-radius:10px;padding:10px 4px;background:#e4e9ed;
+  color:#687680;font-weight:800;font-size:12px
+}
+.step-tab.active{background:var(--navy);color:#fff}
+main{max-width:760px;margin:auto;padding:10px 10px calc(95px + env(safe-area-inset-bottom))}
+.step-panel{display:none}
+.step-panel.active{display:block}
 .card{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:15px;
-  box-shadow:var(--shadow);
-  margin-bottom:10px;
-  overflow:hidden;
+  background:var(--card);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);
+  margin-bottom:10px;overflow:hidden
 }
 .card-title{padding:12px 13px 5px;font-weight:800}
-.card-note{padding:0 13px 12px;font-size:12px;color:var(--muted);line-height:1.45}
+.card-note,.compact-note{padding:0 13px 12px;font-size:12px;color:var(--muted);line-height:1.45}
 .upload-wrap{padding:12px}
 .upload-box{
-  width:100%;
-  min-height:112px;
-  border:2px dashed #aebbc5;
-  border-radius:14px;
-  background:#f8fafb;
-  display:grid;
-  place-items:center;
-  padding:18px;
-  text-align:center;
-  cursor:pointer;
+  width:100%;min-height:112px;border:2px dashed #aebbc5;border-radius:14px;background:#f8fafb;
+  display:grid;place-items:center;padding:18px;text-align:center;cursor:pointer
 }
 .upload-icon{font-size:30px}
 .upload-main{font-weight:800;margin-top:4px}
 .upload-sub{font-size:12px;color:var(--muted);margin-top:4px}
-.hidden{display:none!important}
-.layouts{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  padding:10px 12px 13px;
+
+.photo-strip{
+  display:flex;gap:8px;overflow-x:auto;padding:10px 10px 12px;scrollbar-width:none
 }
+.photo-chip{
+  flex:0 0 92px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px
+}
+.photo-chip img{width:80px;height:80px;object-fit:cover;border-radius:9px;background:#edf1f4}
+.photo-chip-index{text-align:center;font-size:11px;color:var(--muted);margin-top:5px}
+.photo-chip-actions{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px}
+.photo-chip-actions button{
+  border:0;border-radius:8px;background:var(--soft);padding:6px 0;font-weight:800;color:#465865
+}
+.photo-chip-actions .danger{color:var(--danger);grid-column:1/-1}
+
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px 0}
+.mode-tab{border:0;border-radius:10px;padding:10px;background:#e9eef2;color:#65737e;font-weight:800}
+.mode-tab.active{background:var(--navy);color:#fff}
+.layout-panel{display:none}
+.layout-panel.active{display:block}
+.layout-scroll{display:flex;gap:8px;overflow-x:auto;padding:10px 12px 12px;scrollbar-width:none}
 .layout{
-  border:1px solid var(--line);
-  background:#fff;
-  border-radius:12px;
-  min-height:72px;
-  padding:8px 5px;
-  color:var(--text);
+  flex:0 0 92px;border:1px solid var(--line);background:#fff;border-radius:12px;min-height:72px;
+  padding:8px 5px;color:var(--text)
 }
 .layout.active{background:var(--navy);border-color:var(--navy);color:#fff}
-.layout-icon{
-  width:32px;height:32px;margin:auto auto 5px;
-  display:grid;gap:2px
-}
+.layout-icon{width:32px;height:32px;margin:auto auto 5px;display:grid;gap:2px}
 .layout-icon span{display:block;background:currentColor;border-radius:2px;opacity:.82}
 .icon-v{grid-template-rows:1fr 1fr}
 .icon-h{grid-template-columns:1fr 1fr}
+.icon-v3{grid-template-rows:repeat(3,1fr)}
+.icon-h3{grid-template-columns:repeat(3,1fr)}
+.icon-v4{grid-template-rows:repeat(4,1fr)}
+.icon-h4{grid-template-columns:repeat(4,1fr)}
 .icon-4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
 .icon-6{grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr)}
 .icon-9{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+.custom-grid{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.custom-grid .big-top{grid-column:1/-1}
+.custom-grid .big-bottom{grid-column:1/-1;grid-row:2}
+.custom-grid.left-big .big-left{grid-row:1/-1}
+.custom-grid.right-big .big-right{grid-column:2;grid-row:1/-1}
 .layout-label{font-size:12px;font-weight:750}
+
 .controls{padding:4px 12px 13px}
 .control{margin-top:10px}
 .control:first-child{margin-top:0}
@@ -108,183 +111,75 @@ main{max-width:760px;margin:auto;padding:11px 11px calc(105px + env(safe-area-in
 .control-value{font-size:12px;color:var(--muted)}
 input[type=range]{width:100%;accent-color:var(--navy)}
 .segment{
-  display:grid;grid-template-columns:1fr 1fr;gap:6px;
-  background:#edf1f4;border-radius:11px;padding:4px
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#edf1f4;border-radius:11px;padding:4px
 }
 .segment button{
-  border:0;background:transparent;border-radius:8px;padding:9px 6px;
-  color:#65737e;font-size:13px;font-weight:750
+  border:0;background:transparent;border-radius:8px;padding:9px 6px;color:#65737e;font-size:13px;font-weight:750
 }
 .segment button.active{background:#fff;color:var(--text);box-shadow:0 2px 7px rgba(30,44,57,.08)}
 .ratio-wrap{display:none}
 .ratio-wrap.show{display:block}
-.photo-list{padding:4px 10px 10px}
-.photo{
-  display:grid;
-  grid-template-columns:56px 1fr 110px;
-  gap:9px;
-  align-items:center;
-  padding:8px;
-  border:1px solid var(--line);
-  border-radius:12px;
-  margin-top:8px;
-  background:#fff;
-}
-.thumb{width:56px;height:56px;object-fit:cover;border-radius:9px;background:#edf1f4}
-.photo-info{min-width:0}
-.photo-name{font-size:13px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.photo-size{font-size:11px;color:var(--muted);margin-top:4px}
-.photo-actions{display:grid;grid-template-columns:repeat(3,34px);gap:4px}
-.photo-actions button{
-  width:34px;height:34px;border:0;border-radius:9px;background:var(--soft);
-  color:#485a68;font-weight:800;font-size:14px
-}
-.photo-actions .delete{color:var(--danger)}
-.photo-actions .focus-btn{grid-column:1/3;width:72px}
-.photo-actions .delete{grid-column:3;width:34px}
-.photo-tip{font-size:11px;color:var(--muted);margin-top:3px}
-.focus-modal{
-  position:fixed;inset:0;z-index:70;background:rgba(16,25,32,.55);
-  display:none;align-items:flex-end
-}
-.focus-modal.show{display:flex}
-.focus-sheet{
-  width:100%;background:#fff;border-radius:20px 20px 0 0;
-  padding:10px 14px calc(16px + env(safe-area-inset-bottom))
-}
-.focus-grab{width:42px;height:4px;background:#d4dade;border-radius:999px;margin:2px auto 10px}
-.focus-title{font-size:17px;font-weight:800;margin-bottom:4px}
-.focus-note{font-size:12px;color:var(--muted);margin-bottom:10px}
-.focus-stage{
-  width:min(88vw,420px);aspect-ratio:1/1;margin:auto;
-  border-radius:14px;overflow:hidden;background:#e5e9ec;
-  position:relative;touch-action:none;border:1px solid var(--line)
-}
-.focus-stage img{
-  position:absolute;max-width:none;max-height:none;user-select:none;
-  -webkit-user-drag:none;pointer-events:none
-}
-.focus-cross:before,.focus-cross:after{
-  content:"";position:absolute;background:rgba(255,255,255,.55);pointer-events:none
-}
-.focus-cross:before{left:50%;top:0;bottom:0;width:1px}
-.focus-cross:after{top:50%;left:0;right:0;height:1px}
-.focus-sliders{margin-top:12px}
-.focus-slider{margin-top:9px}
-.focus-slider:first-child{margin-top:0}
-.focus-slider-head{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
-.focus-slider input{width:100%;accent-color:var(--navy)}
-.focus-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.focus-tools button{border:0;border-radius:10px;padding:9px;background:var(--soft);font-weight:750;color:var(--text)}
-.focus-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-.focus-actions button{border:0;border-radius:11px;padding:11px;font-weight:800}
-.focus-cancel{background:var(--soft);color:var(--text)}
-.focus-ok{background:var(--navy);color:#fff}
-@media(min-width:700px){
-  .focus-modal{align-items:center;justify-content:center;padding:20px}
-  .focus-sheet{max-width:500px;border-radius:20px}
-}
 .capacity{
-  display:none;
-  margin:8px 12px 12px;
-  border:1px solid #e5cf80;
-  background:#fff5cf;
-  border-radius:10px;
-  padding:9px 10px;
-  font-size:12px;
-  line-height:1.45
+  display:none;margin:8px 12px 12px;border:1px solid #e5cf80;background:#fff5cf;border-radius:10px;
+  padding:9px 10px;font-size:12px;line-height:1.45
 }
 .capacity.show{display:block}
+
 .preview-wrap{padding:10px 10px 12px}
 .canvas-shell{
-  min-height:190px;
-  border-radius:13px;
-  overflow:auto;
-  background:#dfe4e8;
-  display:grid;
-  place-items:center;
-  padding:10px;
+  min-height:190px;border-radius:13px;overflow:auto;background:#dfe4e8;display:grid;place-items:center;padding:10px
 }
 canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px 18px rgba(31,45,57,.14)}
 .empty-preview{text-align:center;color:var(--muted);padding:35px 15px;font-size:13px}
 .preview-hint{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
-.canvas-shell.grid-editable canvas{cursor:pointer}
-.bottom{
-  position:fixed;
-  left:0;right:0;bottom:0;z-index:35;
-  background:rgba(250,251,252,.96);
-  backdrop-filter:blur(14px);
-  border-top:1px solid var(--line);
-  padding:9px 10px calc(9px + env(safe-area-inset-bottom));
-}
-.bottom-inner{max-width:760px;margin:auto;display:grid;grid-template-columns:1fr 1.35fr;gap:8px}
-.btn{
-  border:0;border-radius:12px;padding:12px 10px;font-weight:800;
-  background:var(--soft);color:var(--text)
-}
+.preview-hint strong{color:var(--navy)}
+.btn{border:0;border-radius:12px;padding:12px 10px;font-weight:800;background:var(--soft);color:var(--text)}
 .btn.primary{background:var(--navy);color:#fff}
 .btn:disabled{opacity:.45}
+.full-btn{width:100%}
+
+.bottom{
+  position:fixed;left:0;right:0;bottom:0;z-index:35;background:rgba(250,251,252,.96);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);padding:9px 10px calc(9px + env(safe-area-inset-bottom))
+}
+.bottom-inner{max-width:760px;margin:auto;display:grid;grid-template-columns:1fr 1.35fr;gap:8px}
+
+.edit-modal{
+  position:fixed;inset:0;display:none;z-index:70;background:rgba(15,24,31,.58);align-items:flex-end
+}
+.edit-modal.show{display:flex}
+.edit-sheet{
+  width:100%;background:#fff;border-radius:20px 20px 0 0;padding:10px 14px calc(15px + env(safe-area-inset-bottom))
+}
+.edit-grab{width:42px;height:4px;background:#d4dade;border-radius:999px;margin:2px auto 10px}
+.edit-title{font-size:17px;font-weight:800}
+.edit-note{font-size:12px;color:var(--muted);margin-top:4px;margin-bottom:10px}
+.edit-stage{
+  width:min(88vw,430px);margin:auto;border-radius:14px;overflow:hidden;position:relative;
+  background:#e4e9ec;border:1px solid var(--line);touch-action:none
+}
+.edit-stage img{
+  position:absolute;max-width:none;max-height:none;user-select:none;-webkit-user-drag:none;pointer-events:none
+}
+.edit-cross:before,.edit-cross:after{
+  content:"";position:absolute;background:rgba(255,255,255,.6);pointer-events:none
+}
+.edit-cross:before{left:50%;top:0;bottom:0;width:1px}
+.edit-cross:after{top:50%;left:0;right:0;height:1px}
+.edit-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.edit-actions button{border:0;border-radius:11px;padding:11px;font-weight:800}
+.edit-actions .soft{background:var(--soft);color:var(--text)}
+.edit-actions .primary{background:var(--navy);color:#fff}
 .toast{
-  position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));
-  transform:translateX(-50%) translateY(20px);
-  background:#263849;color:#fff;padding:9px 13px;border-radius:999px;
-  font-size:12px;opacity:0;pointer-events:none;transition:.2s;z-index:50;
-  white-space:nowrap
+  position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+  background:#263849;color:#fff;padding:9px 13px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;
+  transition:.2s;z-index:80;white-space:nowrap
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(min-width:700px){
-  .layouts{grid-template-columns:repeat(5,1fr)}
+  .edit-modal{align-items:center;justify-content:center;padding:20px}
+  .edit-sheet{max-width:520px;border-radius:20px}
 }
-
-.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px 0}.mode-tab{border:0;border-radius:10px;padding:10px;background:#e9eef2;color:#65737e;font-weight:800}.mode-tab.active{background:var(--navy);color:#fff}.layout-panel{display:none}.layout-panel.active{display:block}.icon-v3{grid-template-rows:repeat(3,1fr)}.icon-h3{grid-template-columns:repeat(3,1fr)}.icon-v4{grid-template-rows:repeat(4,1fr)}.icon-h4{grid-template-columns:repeat(4,1fr)}.icon-6h{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr)}.custom-grid{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}.custom-grid .big-top{grid-column:1/-1}.custom-grid .big-bottom{grid-column:1/-1;grid-row:2}.custom-grid.left-big .big-left{grid-row:1/-1}.custom-grid.right-big .big-right{grid-column:2;grid-row:1/-1}
-
-
-.step-tabs{
-  position:sticky;top:calc(73px + env(safe-area-inset-top));z-index:25;
-  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
-  padding:8px 10px;background:rgba(238,241,244,.96);backdrop-filter:blur(12px)
-}
-.step-tab{
-  border:0;border-radius:10px;padding:9px 4px;background:#e4e9ed;
-  color:#687680;font-weight:800;font-size:12px
-}
-.step-tab.active{background:var(--navy);color:#fff}
-.step-panel{display:none}
-.step-panel.active{display:block}
-.compact-card{margin-bottom:9px}
-.compact-note{font-size:12px;color:var(--muted);padding:0 12px 10px}
-.photo-strip{
-  display:flex;gap:8px;overflow-x:auto;padding:10px 10px 12px;scrollbar-width:none
-}
-.photo-chip{
-  flex:0 0 88px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px
-}
-.photo-chip img{width:76px;height:76px;object-fit:cover;border-radius:9px;background:#edf1f4}
-.photo-chip-index{text-align:center;font-size:11px;color:var(--muted);margin-top:5px}
-.photo-chip-actions{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px}
-.photo-chip-actions button{
-  border:0;border-radius:8px;background:var(--soft);padding:6px 0;font-weight:800;color:#465865
-}
-.layout-scroll{display:flex;gap:8px;overflow-x:auto;padding:10px 12px 12px;scrollbar-width:none}
-.layout-scroll .layout{flex:0 0 92px}
-.preview-card{margin-bottom:8px}
-.preview-controls{
-  display:none;border-top:1px solid var(--line);padding:10px 12px 12px;background:#fbfcfd
-}
-.preview-controls.show{display:block}
-.selected-title{font-weight:800;margin-bottom:8px}
-.mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.nudge-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-.nudge-row button,.reset-focus-btn{
-  border:0;border-radius:9px;padding:9px 5px;background:var(--soft);font-weight:800;color:var(--text)
-}
-.reset-focus-btn{width:100%;margin-top:8px}
-.control-block{margin-top:9px}
-.control-block:first-child{margin-top:0}
-.control-block .control-head{margin-bottom:4px}
-#focusModal{display:none!important}
-main{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
-
 </style>
 </head>
 <body>
@@ -292,7 +187,7 @@ main{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
   <div class="header-row">
     <div>
       <h1>🖼️ 手機圖片拼接</h1>
-      <div class="subtitle">三步驟簡潔版</div>
+      <div class="subtitle">v4・點格子直接拖曳與雙指縮放</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -304,35 +199,32 @@ main{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
   <button class="step-tab" data-step="preview" onclick="showStep('preview',this)">③ 預覽</button>
 </div>
 
-
-
 <main>
   <section id="stepPhotos" class="step-panel active">
-    <section class="card compact-card" id="topUploadCard">
+    <section class="card" id="topUploadCard">
       <div class="upload-wrap">
         <label class="upload-box" for="fileInput">
           <div>
             <div class="upload-icon">＋</div>
             <div class="upload-main">選擇照片</div>
-            <div class="upload-sub">可一次選多張</div>
+            <div class="upload-sub">可一次選多張，之後再慢慢排序</div>
           </div>
         </label>
         <input id="fileInput" class="hidden" type="file" accept="image/*" multiple>
       </div>
     </section>
 
-    <section class="card compact-card">
+    <section class="card">
       <div class="card-title">照片順序 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
-      <div class="compact-note">左右滑動查看照片；可旋轉、前移、後移或刪除。</div>
+      <div class="compact-note">左右滑動查看；可旋轉、前移、後移、刪除。</div>
       <div id="photoStrip" class="photo-strip"></div>
-      <div id="photoList" class="hidden"></div>
     </section>
 
-    <button class="btn primary" style="width:100%" onclick="showStep('layout',document.querySelector('[data-step=layout]'))">下一步：選版型</button>
+    <button class="btn primary full-btn" onclick="showStep('layout',document.querySelector('[data-step=layout]'))">下一步：選版型</button>
   </section>
 
   <section id="stepLayout" class="step-panel">
-    <section class="card compact-card">
+    <section class="card">
       <div class="card-title">選擇版型</div>
       <div class="mode-tabs">
         <button class="mode-tab active" data-mode="join" onclick="setMode('join',this)">拼接</button>
@@ -422,48 +314,24 @@ main{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
       <div id="capacityNote" class="capacity"></div>
     </section>
 
-    <button class="btn primary" style="width:100%" onclick="showStep('preview',document.querySelector('[data-step=preview]'))">下一步：預覽</button>
+    <button class="btn primary full-btn" onclick="showStep('preview',document.querySelector('[data-step=preview]'))">下一步：預覽</button>
   </section>
 
   <section id="stepPreview" class="step-panel">
-    <section class="card preview-card">
+    <section class="card">
       <div class="card-title">預覽</div>
       <div class="preview-wrap">
         <div class="canvas-shell">
           <div id="emptyPreview" class="empty-preview">選擇照片後會在這裡預覽</div>
           <canvas id="previewCanvas" class="hidden"></canvas>
         </div>
-        <div id="previewHint" class="preview-hint hidden">點格子照片後，直接用下方控制調整位置與縮放</div>
-      </div>
-
-      <div id="previewControls" class="preview-controls">
-        <div class="selected-title">正在調整：第 <span id="selectedPhotoNumber">1</span> 張照片</div>
-
-        <div class="control-block">
-          <div class="control-head"><label>左右位置</label><span class="control-value" id="inlineXText">50%</span></div>
-          <input id="inlineXRange" type="range" min="0" max="100" value="50">
+        <div id="previewHint" class="preview-hint hidden">
+          <strong>格子模式：</strong>點一下某張格子照片，可直接拖曳與雙指縮放
         </div>
-        <div class="control-block">
-          <div class="control-head"><label>上下位置</label><span class="control-value" id="inlineYText">50%</span></div>
-          <input id="inlineYRange" type="range" min="0" max="100" value="50">
-        </div>
-        <div class="control-block">
-          <div class="control-head"><label>照片縮放</label><span class="control-value" id="inlineZoomText">100%</span></div>
-          <input id="inlineZoomRange" type="range" min="100" max="250" value="100">
-        </div>
-
-        <div class="nudge-row">
-          <button onclick="nudgeSelected(-0.05,0)">←</button>
-          <button onclick="nudgeSelected(0.05,0)">→</button>
-          <button onclick="nudgeSelected(0,-0.05)">↑</button>
-          <button onclick="nudgeSelected(0,0.05)">↓</button>
-        </div>
-        <button class="reset-focus-btn" onclick="resetSelectedFocus()">恢復置中</button>
       </div>
     </section>
   </section>
 </main>
-
 
 <div class="bottom">
   <div class="bottom-inner">
@@ -472,36 +340,19 @@ main{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
   </div>
 </div>
 
-<div id="focusModal" class="focus-modal" onclick="closeFocusByBackdrop(event)">
-  <div class="focus-sheet">
-    <div class="focus-grab"></div>
-    <div class="focus-title">調整格子取景</div>
-    <div class="focus-note">先視需要放大照片，再拖動或使用滑桿，選擇格子中要保留的畫面。</div>
-    <div id="focusStage" class="focus-stage">
-      <img id="focusImage" alt="">
-      <div class="focus-cross"></div>
+<div id="editModal" class="edit-modal" onclick="closeEditorByBackdrop(event)">
+  <div class="edit-sheet">
+    <div class="edit-grab"></div>
+    <div class="edit-title">調整格子畫面</div>
+    <div class="edit-note">單指拖曳移動位置，雙指縮放照片。</div>
+    <div id="editStage" class="edit-stage">
+      <img id="editImage" alt="">
+      <div class="edit-cross"></div>
     </div>
-    <div class="focus-sliders">
-      <div class="focus-slider">
-        <div class="focus-slider-head"><span>左右位置</span><span id="focusXText">50%</span></div>
-        <input id="focusXRange" type="range" min="0" max="100" value="50">
-      </div>
-      <div class="focus-slider">
-        <div class="focus-slider-head"><span>上下位置</span><span id="focusYText">50%</span></div>
-        <input id="focusYRange" type="range" min="0" max="100" value="50">
-      </div>
-      <div class="focus-slider">
-        <div class="focus-slider-head"><span>照片縮放</span><span id="focusZoomText">100%</span></div>
-        <input id="focusZoomRange" type="range" min="100" max="250" value="100">
-      </div>
-    </div>
-    <div class="focus-tools">
-      <button onclick="centerFocus()">置中</button>
-      <button onclick="closeFocus()">取消調整</button>
-    </div>
-    <div class="focus-actions">
-      <button class="focus-cancel" onclick="closeFocus()">取消</button>
-      <button class="focus-ok" onclick="saveFocus()">套用位置</button>
+    <div class="edit-actions">
+      <button class="soft" onclick="resetEditor()">重設</button>
+      <button class="soft" onclick="closeEditor()">取消</button>
+      <button class="primary" onclick="saveEditor()">完成</button>
     </div>
   </div>
 </div>
@@ -510,103 +361,29 @@ main{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 
 <script>
 const state = {
-  photos: [],
   mode: localStorage.getItem("collage_mode") || "join",
   layout: localStorage.getItem("collage_layout") || "vertical",
   gap: Number(localStorage.getItem("collage_gap") || 6),
   radius: Number(localStorage.getItem("collage_radius") || 0),
   fit: localStorage.getItem("collage_fit") || "cover",
-  ratio: localStorage.getItem("collage_ratio") || "1:1"
+  ratio: localStorage.getItem("collage_ratio") || "1:1",
+  photos: []
 };
-const capacities = {grid2h:2,grid2v:2,grid3top:3,grid3left:3,grid3bottom:3,grid3right:3,grid4:4,grid6v:6,grid6h:6,grid9:9};
-let previewTimer = null;
-let previewHitboxes = [];
-
-
-let selectedGridPhotoIndex = -1;
-
-function showStep(step, button){
-  document.querySelectorAll(".step-panel").forEach(p=>p.classList.remove("active"));
-  document.querySelectorAll(".step-tab").forEach(b=>b.classList.remove("active"));
-  const panel = document.getElementById("step"+step.charAt(0).toUpperCase()+step.slice(1));
-  if(panel) panel.classList.add("active");
-  if(button) button.classList.add("active");
-  if(step==="preview") schedulePreview();
-  window.scrollTo({top:0,behavior:"smooth"});
-}
-
-function renderPhotoStrip(){
-  const root = document.getElementById("photoStrip");
-  if(!root) return;
-  root.innerHTML = "";
-  state.photos.forEach((photo,index)=>{
-    const chip = document.createElement("div");
-    chip.className = "photo-chip";
-    chip.innerHTML = `
-      <img src="${photo.url}" alt="">
-      <div class="photo-chip-index">第 ${index+1} 張</div>
-      <div class="photo-chip-actions">
-        <button onclick="rotatePhoto(${index},-90)">↶</button>
-        <button onclick="rotatePhoto(${index},90)">↷</button>
-        <button onclick="movePhoto(${index},-1)" ${index===0?"disabled":""}>←</button>
-        <button onclick="movePhoto(${index},1)" ${index===state.photos.length-1?"disabled":""}>→</button>
-        <button onclick="removePhoto(${index})" style="grid-column:1/-1;color:var(--danger)">刪除</button>
-      </div>`;
-    root.appendChild(chip);
-  });
-}
-
-function selectGridPhoto(index){
-  if(!state.layout.startsWith("grid") || index < 0 || !state.photos[index]) return;
-  selectedGridPhotoIndex = index;
-  const photo = state.photos[index];
-  document.getElementById("selectedPhotoNumber").textContent = index+1;
-  document.getElementById("inlineXRange").value = Math.round((Number.isFinite(photo.focusX)?photo.focusX:0.5)*100);
-  document.getElementById("inlineYRange").value = Math.round((Number.isFinite(photo.focusY)?photo.focusY:0.5)*100);
-  document.getElementById("inlineZoomRange").value = Math.round((Number.isFinite(photo.zoom)?photo.zoom:1)*100);
-  syncInlineFocusText();
-  document.getElementById("previewControls").classList.add("show");
-}
-
-function syncInlineFocusText(){
-  document.getElementById("inlineXText").textContent = document.getElementById("inlineXRange").value+"%";
-  document.getElementById("inlineYText").textContent = document.getElementById("inlineYRange").value+"%";
-  document.getElementById("inlineZoomText").textContent = document.getElementById("inlineZoomRange").value+"%";
-}
-function applyInlineFocus(){
-  const photo = state.photos[selectedGridPhotoIndex];
-  if(!photo) return;
-  photo.focusX = Number(document.getElementById("inlineXRange").value)/100;
-  photo.focusY = Number(document.getElementById("inlineYRange").value)/100;
-  photo.zoom = Number(document.getElementById("inlineZoomRange").value)/100;
-  syncInlineFocusText();
-  schedulePreview();
-}
-function nudgeSelected(dx,dy){
-  const photo = state.photos[selectedGridPhotoIndex];
-  if(!photo) return;
-  photo.focusX = Math.min(1,Math.max(0,(Number.isFinite(photo.focusX)?photo.focusX:0.5)+dx));
-  photo.focusY = Math.min(1,Math.max(0,(Number.isFinite(photo.focusY)?photo.focusY:0.5)+dy));
-  document.getElementById("inlineXRange").value = Math.round(photo.focusX*100);
-  document.getElementById("inlineYRange").value = Math.round(photo.focusY*100);
-  syncInlineFocusText();
-  schedulePreview();
-}
-function resetSelectedFocus(){
-  const photo = state.photos[selectedGridPhotoIndex];
-  if(!photo) return;
-  photo.focusX = 0.5; photo.focusY = 0.5; photo.zoom = 1;
-  document.getElementById("inlineXRange").value = 50;
-  document.getElementById("inlineYRange").value = 50;
-  document.getElementById("inlineZoomRange").value = 100;
-  syncInlineFocusText();
-  schedulePreview();
-}
+const capacities = {grid2h:2,grid2v:2,grid3top:3,grid3left:3,grid3bottom:3,grid3right:3,grid4:4,grid6v:6,grid9:9};
+const joinCaps = {vertical3:3,horizontal3:3,vertical4:4,horizontal4:4};
 
 const fileInput = document.getElementById("fileInput");
 const previewCanvas = document.getElementById("previewCanvas");
+let previewTimer = null;
+let previewHitboxes = [];
 
-fileInput.addEventListener("change", async (event) => {
+let editorPhotoIndex = -1;
+let editorDraft = {x:0.5,y:0.5,zoom:1};
+let editorAspect = 1;
+let activeTouches = new Map();
+let gestureStart = null;
+
+fileInput.addEventListener("change", async (event)=>{
   const files = Array.from(event.target.files || []);
   if(!files.length) return;
   const remaining = Math.max(0, 20 - state.photos.length);
@@ -615,15 +392,15 @@ fileInput.addEventListener("change", async (event) => {
 
   for(const file of selected){
     try{
-      const img = await loadImage(file);
+      const imgData = await loadImage(file);
       state.photos.push({
-        id: "p_" + Date.now() + "_" + Math.random().toString(36).slice(2),
+        id:"p_" + Date.now() + "_" + Math.random().toString(36).slice(2),
         file,
-        url: img.url,
-        img: img.image,
+        url: imgData.url,
+        img: imgData.image,
         name: file.name,
-        width: img.image.naturalWidth,
-        height: img.image.naturalHeight,
+        width: imgData.image.naturalWidth,
+        height: imgData.image.naturalHeight,
         rotation: 0,
         focusX: 0.5,
         focusY: 0.5,
@@ -648,16 +425,35 @@ function loadImage(file){
   });
 }
 
-function setMode(mode, button){
-  state.mode=mode;localStorage.setItem("collage_mode",mode);document.querySelectorAll(".mode-tab").forEach(b=>b.classList.remove("active"));if(button)button.classList.add("active");document.getElementById("joinLayouts").classList.toggle("active",mode==="join");document.getElementById("gridLayouts").classList.toggle("active",mode==="grid");const panel=mode==="join"?document.getElementById("joinLayouts"):document.getElementById("gridLayouts");let candidate=panel.querySelector(`.layout[data-layout="${state.layout}"]`);if(!candidate)candidate=panel.querySelector(".layout");setLayout(candidate.dataset.layout,candidate);
+function showStep(step, button){
+  document.querySelectorAll(".step-panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".step-tab").forEach(b=>b.classList.remove("active"));
+  const panel = document.getElementById("step" + step.charAt(0).toUpperCase() + step.slice(1));
+  if(panel) panel.classList.add("active");
+  if(button) button.classList.add("active");
+  if(step === "preview") schedulePreview();
+  window.scrollTo({top:0, behavior:"smooth"});
 }
+
+function setMode(mode, button){
+  state.mode = mode;
+  localStorage.setItem("collage_mode", mode);
+  document.querySelectorAll(".mode-tab").forEach(b=>b.classList.remove("active"));
+  if(button) button.classList.add("active");
+  document.getElementById("joinLayouts").classList.toggle("active", mode==="join");
+  document.getElementById("gridLayouts").classList.toggle("active", mode==="grid");
+  const activePanel = mode==="join" ? document.getElementById("joinLayouts") : document.getElementById("gridLayouts");
+  let candidate = activePanel.querySelector(`.layout[data-layout="${state.layout}"]`);
+  if(!candidate) candidate = activePanel.querySelector(".layout");
+  setLayout(candidate.dataset.layout, candidate);
+}
+
 function setLayout(layout, button){
   state.layout = layout;
   localStorage.setItem("collage_layout", layout);
   document.querySelectorAll(".layout").forEach(b=>b.classList.remove("active"));
   if(button) button.classList.add("active");
   document.getElementById("ratioWrap").classList.toggle("show", !!capacities[layout]);
-  if(!layout.startsWith("grid")){ selectedGridPhotoIndex=-1; document.getElementById("previewControls").classList.remove("show"); }
   updateCapacityNote();
   schedulePreview();
 }
@@ -692,30 +488,25 @@ document.getElementById("roundRange").addEventListener("input", e=>{
 });
 
 function renderPhotos(){
-  const root = document.getElementById("photoList");
+  const root = document.getElementById("photoStrip");
   root.innerHTML = "";
   document.getElementById("photoCount").textContent = state.photos.length ? `共 ${state.photos.length} 張` : "";
   state.photos.forEach((photo,index)=>{
-    const row = document.createElement("div");
-    row.className = "photo";
-    row.innerHTML = `
-      <img class="thumb" src="${photo.url}" alt="">
-      <div class="photo-info">
-        <div class="photo-name">${escapeHtml(photo.name)}</div>
-        <div class="photo-size">${photo.width} × ${photo.height}</div>
-      </div>
-      <div class="photo-actions">
-        <button onclick="rotatePhoto(${index},-90)" title="向左旋轉">↶</button>
-        <button onclick="rotatePhoto(${index},90)" title="向右旋轉">↷</button>
-        <button onclick="movePhoto(${index},-1)" ${index===0?"disabled":""} title="上移">↑</button>
-        <button onclick="movePhoto(${index},1)" ${index===state.photos.length-1?"disabled":""} title="下移">↓</button>
-        <button class="focus-btn" onclick="openFocus(${index})" title="調整格子取景">調畫面</button>
-        <button class="delete" onclick="removePhoto(${index})" title="刪除">×</button>
+    const chip = document.createElement("div");
+    chip.className = "photo-chip";
+    chip.innerHTML = `
+      <img src="${photo.url}" alt="">
+      <div class="photo-chip-index">第 ${index+1} 張</div>
+      <div class="photo-chip-actions">
+        <button onclick="rotatePhoto(${index},-90)">↶</button>
+        <button onclick="rotatePhoto(${index},90)">↷</button>
+        <button onclick="movePhoto(${index},-1)" ${index===0?"disabled":""}>←</button>
+        <button onclick="movePhoto(${index},1)" ${index===state.photos.length-1?"disabled":""}>→</button>
+        <button class="danger" onclick="removePhoto(${index})">刪除</button>
       </div>`;
-    root.appendChild(row);
+    root.appendChild(chip);
   });
   document.getElementById("exportBtn").disabled = state.photos.length===0;
-  renderPhotoStrip();
   document.getElementById("topUploadCard").classList.toggle("hidden", state.photos.length>0);
   updateCapacityNote();
 }
@@ -724,6 +515,13 @@ function movePhoto(index, direction){
   const target = index + direction;
   if(target < 0 || target >= state.photos.length) return;
   [state.photos[index],state.photos[target]] = [state.photos[target],state.photos[index]];
+  renderPhotos();
+  schedulePreview();
+}
+
+function removePhoto(index){
+  const removed = state.photos.splice(index,1)[0];
+  if(removed) URL.revokeObjectURL(removed.url);
   renderPhotos();
   schedulePreview();
 }
@@ -741,133 +539,6 @@ function rotatePhoto(index, delta){
   schedulePreview();
 }
 
-let focusEditingIndex = -1;
-let focusDraftX = 0.5;
-let focusDraftY = 0.5;
-let focusDraftZoom = 1;
-let focusDragStart = null;
-
-function openFocus(index){
-  const photo = state.photos[index];
-  if(!photo) return;
-  focusEditingIndex = index;
-  focusDraftX = Number.isFinite(photo.focusX) ? photo.focusX : 0.5;
-  focusDraftY = Number.isFinite(photo.focusY) ? photo.focusY : 0.5;
-  focusDraftZoom = Number.isFinite(photo.zoom) ? photo.zoom : 1;
-  const hitbox = previewHitboxes.find(box => box.index === index);
-  const stage = document.getElementById("focusStage");
-  if(hitbox && hitbox.w > 0 && hitbox.h > 0){
-    stage.style.aspectRatio = `${hitbox.w} / ${hitbox.h}`;
-  }else{
-    stage.style.aspectRatio = "1 / 1";
-  }
-  const oriented = getOrientedCanvas(photo);
-  const img = document.getElementById("focusImage");
-  img.src = oriented.toDataURL("image/jpeg",0.88);
-  document.getElementById("focusModal").classList.add("show");
-  document.body.style.overflow = "hidden";
-  syncFocusControls();
-  requestAnimationFrame(updateFocusStage);
-}
-
-function closeFocus(){
-  document.getElementById("focusModal").classList.remove("show");
-  document.body.style.overflow = "";
-  focusEditingIndex = -1;
-}
-function closeFocusByBackdrop(event){
-  if(event.target.id === "focusModal") closeFocus();
-}
-function saveFocus(){
-  const photo = state.photos[focusEditingIndex];
-  if(photo){
-    photo.focusX = focusDraftX;
-    photo.focusY = focusDraftY;
-    photo.zoom = focusDraftZoom;
-  }
-  closeFocus();
-  schedulePreview();
-}
-
-function syncFocusControls(){
-  const xr = document.getElementById("focusXRange");
-  const yr = document.getElementById("focusYRange");
-  if(xr) xr.value = Math.round(focusDraftX*100);
-  if(yr) yr.value = Math.round(focusDraftY*100);
-  const zr = document.getElementById("focusZoomRange");
-  if(zr) zr.value = Math.round(focusDraftZoom*100);
-  document.getElementById("focusXText").textContent = Math.round(focusDraftX*100)+"%";
-  document.getElementById("focusYText").textContent = Math.round(focusDraftY*100)+"%";
-  document.getElementById("focusZoomText").textContent = Math.round(focusDraftZoom*100)+"%";
-}
-function centerFocus(){
-  focusDraftX = 0.5;
-  focusDraftY = 0.5;
-  focusDraftZoom = 1;
-  syncFocusControls();
-  updateFocusStage();
-}
-function updateFocusStage(){
-  if(focusEditingIndex < 0) return;
-  const photo = state.photos[focusEditingIndex];
-  const stage = document.getElementById("focusStage");
-  const img = document.getElementById("focusImage");
-  const oriented = getOrientedCanvas(photo);
-  const sw = stage.clientWidth, sh = stage.clientHeight;
-  const scale = Math.max(sw/oriented.width, sh/oriented.height) * focusDraftZoom;
-  const iw = oriented.width*scale, ih = oriented.height*scale;
-  const minX = sw-iw, minY = sh-ih;
-  const left = (sw-iw)/2 + (0.5-focusDraftX)*(iw-sw);
-  const top = (sh-ih)/2 + (0.5-focusDraftY)*(ih-sh);
-  img.style.width = iw+"px";
-  img.style.height = ih+"px";
-  img.style.left = Math.min(0,Math.max(minX,left))+"px";
-  img.style.top = Math.min(0,Math.max(minY,top))+"px";
-}
-const focusStage = document.getElementById("focusStage");
-focusStage.addEventListener("pointerdown", e=>{
-  if(focusEditingIndex < 0) return;
-  focusStage.setPointerCapture(e.pointerId);
-  focusDragStart = {x:e.clientX,y:e.clientY,fx:focusDraftX,fy:focusDraftY};
-});
-focusStage.addEventListener("pointermove", e=>{
-  if(!focusDragStart || focusEditingIndex < 0) return;
-  const photo = state.photos[focusEditingIndex];
-  const oriented = getOrientedCanvas(photo);
-  const sw = focusStage.clientWidth, sh = focusStage.clientHeight;
-  const scale = Math.max(sw/oriented.width, sh/oriented.height) * focusDraftZoom;
-  const iw = oriented.width*scale, ih = oriented.height*scale;
-  const rangeX = Math.max(1,iw-sw), rangeY = Math.max(1,ih-sh);
-  focusDraftX = Math.min(1,Math.max(0,focusDragStart.fx-(e.clientX-focusDragStart.x)/rangeX));
-  focusDraftY = Math.min(1,Math.max(0,focusDragStart.fy-(e.clientY-focusDragStart.y)/rangeY));
-  syncFocusControls();
-  updateFocusStage();
-});
-focusStage.addEventListener("pointerup",()=>focusDragStart=null);
-focusStage.addEventListener("pointercancel",()=>focusDragStart=null);
-
-document.getElementById("focusXRange").addEventListener("input",e=>{
-  focusDraftX = Number(e.target.value)/100;
-  syncFocusControls();
-  updateFocusStage();
-});
-document.getElementById("focusYRange").addEventListener("input",e=>{
-  focusDraftY = Number(e.target.value)/100;
-  syncFocusControls();
-  updateFocusStage();
-});
-document.getElementById("focusZoomRange").addEventListener("input",e=>{
-  focusDraftZoom = Number(e.target.value)/100;
-  syncFocusControls();
-  updateFocusStage();
-});
-
-function removePhoto(index){
-  const removed = state.photos.splice(index,1)[0];
-  if(removed) URL.revokeObjectURL(removed.url);
-  renderPhotos();
-  schedulePreview();
-}
 function resetAll(){
   if(state.photos.length && !confirm("確定清空全部照片嗎？")) return;
   state.photos.forEach(p=>URL.revokeObjectURL(p.url));
@@ -877,11 +548,10 @@ function resetAll(){
 }
 
 function updateCapacityNote(){
+  const cap = capacities[state.layout] || joinCaps[state.layout];
   const note = document.getElementById("capacityNote");
-  const joinCaps={vertical3:3,horizontal3:3,vertical4:4,horizontal4:4};
-  const cap=capacities[state.layout]||joinCaps[state.layout];
   if(cap && state.photos.length > cap){
-    note.textContent = `此版型最多輸出 ${cap} 張，目前有 ${state.photos.length} 張；只會使用前 ${cap} 張。`;
+    note.textContent = `此版型最多使用 ${cap} 張，目前有 ${state.photos.length} 張；輸出時只會使用前 ${cap} 張。`;
     note.classList.add("show");
   }else{
     note.classList.remove("show");
@@ -890,7 +560,7 @@ function updateCapacityNote(){
 
 function schedulePreview(){
   clearTimeout(previewTimer);
-  previewTimer = setTimeout(()=>renderPreview(),120);
+  previewTimer = setTimeout(()=>renderPreview(),100);
 }
 
 async function renderPreview(){
@@ -904,23 +574,26 @@ async function renderPreview(){
   previewCanvas.classList.remove("hidden");
   try{
     await drawCollage(previewCanvas, true);
-    const isGrid = state.layout.startsWith("grid");
-    document.getElementById("previewHint").classList.toggle("hidden", !isGrid);
-    document.querySelector(".canvas-shell").classList.toggle("grid-editable", isGrid);
+    document.getElementById("previewHint").classList.toggle("hidden", !state.layout.startsWith("grid"));
   }catch(e){
-    showToast("預覽建立失敗");
     console.error(e);
+    showToast("預覽建立失敗");
   }
 }
 
 function getGridConfig(layout){
-  if(layout==="grid2h")return {cols:2,rows:1,cap:2};if(layout==="grid2v")return {cols:1,rows:2,cap:2};if(layout==="grid4")return {cols:2,rows:2,cap:4};if(layout==="grid6v")return {cols:2,rows:3,cap:6};if(layout==="grid6h")return {cols:3,rows:2,cap:6};if(layout==="grid9")return {cols:3,rows:3,cap:9};return null;
+  if(layout==="grid2h") return {cols:2,rows:1,cap:2};
+  if(layout==="grid2v") return {cols:1,rows:2,cap:2};
+  if(layout==="grid4") return {cols:2,rows:2,cap:4};
+  if(layout==="grid6v") return {cols:2,rows:3,cap:6};
+  if(layout==="grid9") return {cols:3,rows:3,cap:9};
+  return null;
 }
 
 function ratioDimensions(ratio, longSide){
   if(ratio==="4:5") return {w:longSide, h:Math.round(longSide*1.25)};
   if(ratio==="9:16") return {w:Math.round(longSide*0.5625), h:longSide};
-  return {w:longSide,h:longSide};
+  return {w:longSide, h:longSide};
 }
 
 async function drawCollage(canvas, preview){
@@ -952,17 +625,81 @@ async function drawCollage(canvas, preview){
       x += w + (i < photos.length-1 ? gap : 0);
     });
     width = Math.round(x);
-  }else if(state.layout.startsWith("grid")){
-    const dims=ratioDimensions(state.ratio,preview?760:(state.ratio==="9:16"?3200:2400));width=dims.w;height=dims.h;const gap=preview?gapBase*1.5:gapBase*4;
-    if(["grid3top","grid3left","grid3bottom","grid3right"].includes(state.layout)){
-      const used=photos.slice(0,3),halfW=(width-gap)/2,halfH=(height-gap)/2;
-      const maps={grid3top:[{x:0,y:0,w:width,h:halfH},{x:0,y:halfH+gap,w:halfW,h:halfH},{x:halfW+gap,y:halfH+gap,w:halfW,h:halfH}],grid3bottom:[{x:0,y:0,w:halfW,h:halfH},{x:halfW+gap,y:0,w:halfW,h:halfH},{x:0,y:halfH+gap,w:width,h:halfH}],grid3left:[{x:0,y:0,w:halfW,h:height},{x:halfW+gap,y:0,w:halfW,h:halfH},{x:halfW+gap,y:halfH+gap,w:halfW,h:halfH}],grid3right:[{x:0,y:0,w:halfW,h:halfH},{x:0,y:halfH+gap,w:halfW,h:halfH},{x:halfW+gap,y:0,w:halfW,h:height}]};
-      used.forEach((p,i)=>placements.push({photo:p,...maps[state.layout][i],mode:state.fit}));
-    }else{const cfg=getGridConfig(state.layout),used=photos.slice(0,cfg.cap),cellW=(width-gap*(cfg.cols-1))/cfg.cols,cellH=(height-gap*(cfg.rows-1))/cfg.rows;used.forEach((p,i)=>{const col=i%cfg.cols,row=Math.floor(i/cfg.cols);placements.push({photo:p,x:col*(cellW+gap),y:row*(cellH+gap),w:cellW,h:cellH,mode:state.fit});});}
   }else if(["vertical3","vertical4"].includes(state.layout)){
-    const limit=state.layout==="vertical3"?3:4,used=photos.slice(0,limit);width=preview?720:1800;const gap=preview?gapBase*1.5:gapBase*4;let y=0;used.forEach((p,i)=>{const h=Math.max(1,Math.round(width*p.height/p.width));placements.push({photo:p,x:0,y,w:width,h,mode:"contain"});y+=h+(i<used.length-1?gap:0);});height=Math.round(y);
+    const limit = state.layout==="vertical3" ? 3 : 4;
+    const used = photos.slice(0,limit);
+    width = preview ? 720 : 1800;
+    const gap = preview ? gapBase*1.5 : gapBase*4;
+    let y = 0;
+    used.forEach((p,i)=>{
+      const h = Math.max(1, Math.round(width * p.height / p.width));
+      placements.push({photo:p,x:0,y,w:width,h,mode:"contain"});
+      y += h + (i < used.length-1 ? gap : 0);
+    });
+    height = Math.round(y);
   }else if(["horizontal3","horizontal4"].includes(state.layout)){
-    const limit=state.layout==="horizontal3"?3:4,used=photos.slice(0,limit);height=preview?620:1500;const gap=preview?gapBase*1.5:gapBase*4;let x=0;used.forEach((p,i)=>{const w=Math.max(1,Math.round(height*p.width/p.height));placements.push({photo:p,x,y:0,w,h:height,mode:"contain"});x+=w+(i<used.length-1?gap:0);});width=Math.round(x);
+    const limit = state.layout==="horizontal3" ? 3 : 4;
+    const used = photos.slice(0,limit);
+    height = preview ? 620 : 1500;
+    const gap = preview ? gapBase*1.5 : gapBase*4;
+    let x = 0;
+    used.forEach((p,i)=>{
+      const w = Math.max(1, Math.round(height * p.width / p.height));
+      placements.push({photo:p,x,y:0,w,h:height,mode:"contain"});
+      x += w + (i < used.length-1 ? gap : 0);
+    });
+    width = Math.round(x);
+  }else if(state.layout.startsWith("grid")){
+    const dims = ratioDimensions(state.ratio, preview ? 760 : (state.ratio==="9:16" ? 3200 : 2400));
+    width = dims.w;
+    height = dims.h;
+    const gap = preview ? gapBase*1.5 : gapBase*4;
+
+    if(["grid3top","grid3left","grid3bottom","grid3right"].includes(state.layout)){
+      const used = photos.slice(0,3);
+      const halfW = (width-gap)/2;
+      const halfH = (height-gap)/2;
+      const maps = {
+        grid3top:[
+          {x:0,y:0,w:width,h:halfH},
+          {x:0,y:halfH+gap,w:halfW,h:halfH},
+          {x:halfW+gap,y:halfH+gap,w:halfW,h:halfH}
+        ],
+        grid3bottom:[
+          {x:0,y:0,w:halfW,h:halfH},
+          {x:halfW+gap,y:0,w:halfW,h:halfH},
+          {x:0,y:halfH+gap,w:width,h:halfH}
+        ],
+        grid3left:[
+          {x:0,y:0,w:halfW,h:height},
+          {x:halfW+gap,y:0,w:halfW,h:halfH},
+          {x:halfW+gap,y:halfH+gap,w:halfW,h:halfH}
+        ],
+        grid3right:[
+          {x:0,y:0,w:halfW,h:halfH},
+          {x:0,y:halfH+gap,w:halfW,h:halfH},
+          {x:halfW+gap,y:0,w:halfW,h:height}
+        ]
+      };
+      used.forEach((p,i)=>placements.push({photo:p,...maps[state.layout][i],mode:state.fit}));
+    }else{
+      const cfg = getGridConfig(state.layout);
+      const used = photos.slice(0,cfg.cap);
+      const cellW = (width - gap*(cfg.cols-1)) / cfg.cols;
+      const cellH = (height - gap*(cfg.rows-1)) / cfg.rows;
+      used.forEach((p,i)=>{
+        const col = i % cfg.cols;
+        const row = Math.floor(i / cfg.cols);
+        placements.push({
+          photo:p,
+          x:col*(cellW+gap),
+          y:row*(cellH+gap),
+          w:cellW,
+          h:cellH,
+          mode:state.fit
+        });
+      });
+    }
   }
 
   const maxCanvasSide = preview ? 1800 : 8192;
@@ -970,10 +707,7 @@ async function drawCollage(canvas, preview){
   if(scaleDown < 1){
     width = Math.round(width*scaleDown);
     height = Math.round(height*scaleDown);
-    placements = placements.map(p=>({
-      ...p,
-      x:p.x*scaleDown,y:p.y*scaleDown,w:p.w*scaleDown,h:p.h*scaleDown
-    }));
+    placements = placements.map(p=>({...p,x:p.x*scaleDown,y:p.y*scaleDown,w:p.w*scaleDown,h:p.h*scaleDown}));
   }
 
   canvas.width = Math.max(1,Math.round(width));
@@ -985,17 +719,13 @@ async function drawCollage(canvas, preview){
   ctx.imageSmoothingQuality = "high";
 
   const radius = (preview ? radiusBase*1.5 : radiusBase*4) * scaleDown;
-  placements.forEach((p,index)=>{
+  placements.forEach(p=>{
     drawImageInBox(ctx,p.photo,p.x,p.y,p.w,p.h,p.mode,radius);
     if(preview){
-      previewHitboxes.push({
-        index: state.photos.indexOf(p.photo),
-        x:p.x,y:p.y,w:p.w,h:p.h
-      });
+      previewHitboxes.push({index:state.photos.indexOf(p.photo),x:p.x,y:p.y,w:p.w,h:p.h});
     }
   });
 }
-
 
 function getOrientedCanvas(photo){
   const rotation = ((photo.rotation || 0) + 360) % 360;
@@ -1041,8 +771,8 @@ function drawImageInBox(ctx,photo,x,y,w,h,mode,radius){
   }else{
     const scale = Math.max(w/iw,h/ih);
     const zoom = Number.isFinite(photo.zoom) ? Math.max(1, photo.zoom) : 1;
-    const sw = (w/scale) / zoom;
-    const sh = (h/scale) / zoom;
+    const sw = (w/scale)/zoom;
+    const sh = (h/scale)/zoom;
     const fx = Number.isFinite(photo.focusX) ? photo.focusX : 0.5;
     const fy = Number.isFinite(photo.focusY) ? photo.focusY : 0.5;
     const sx = Math.max(0,Math.min(iw-sw,fx*iw-sw/2));
@@ -1052,6 +782,196 @@ function drawImageInBox(ctx,photo,x,y,w,h,mode,radius){
   ctx.restore();
 }
 
+previewCanvas.addEventListener("click", event=>{
+  if(!state.layout.startsWith("grid")) return;
+  const rect = previewCanvas.getBoundingClientRect();
+  const scaleX = previewCanvas.width / rect.width;
+  const scaleY = previewCanvas.height / rect.height;
+  const x = (event.clientX - rect.left) * scaleX;
+  const y = (event.clientY - rect.top) * scaleY;
+  const hit = previewHitboxes.find(box => x >= box.x && x <= box.x+box.w && y >= box.y && y <= box.y+box.h);
+  if(hit && hit.index >= 0) openEditor(hit.index, hit);
+});
+
+function openEditor(index, hitbox){
+  const photo = state.photos[index];
+  if(!photo) return;
+  editorPhotoIndex = index;
+  editorDraft = {
+    x: Number.isFinite(photo.focusX) ? photo.focusX : 0.5,
+    y: Number.isFinite(photo.focusY) ? photo.focusY : 0.5,
+    zoom: Number.isFinite(photo.zoom) ? photo.zoom : 1
+  };
+  editorAspect = hitbox && hitbox.w > 0 && hitbox.h > 0 ? (hitbox.w / hitbox.h) : 1;
+  const stage = document.getElementById("editStage");
+  stage.style.aspectRatio = `${editorAspect}`;
+  const img = document.getElementById("editImage");
+  const oriented = getOrientedCanvas(photo);
+  img.src = oriented.toDataURL("image/jpeg", 0.92);
+  document.getElementById("editModal").classList.add("show");
+  document.body.style.overflow = "hidden";
+  activeTouches.clear();
+  gestureStart = null;
+  requestAnimationFrame(updateEditorStage);
+}
+
+function closeEditor(){
+  document.getElementById("editModal").classList.remove("show");
+  document.body.style.overflow = "";
+  editorPhotoIndex = -1;
+  activeTouches.clear();
+  gestureStart = null;
+}
+function closeEditorByBackdrop(event){
+  if(event.target.id === "editModal") closeEditor();
+}
+function resetEditor(){
+  editorDraft = {x:0.5,y:0.5,zoom:1};
+  updateEditorStage();
+}
+function saveEditor(){
+  const photo = state.photos[editorPhotoIndex];
+  if(photo){
+    photo.focusX = editorDraft.x;
+    photo.focusY = editorDraft.y;
+    photo.zoom = editorDraft.zoom;
+  }
+  closeEditor();
+  schedulePreview();
+}
+
+function updateEditorStage(){
+  if(editorPhotoIndex < 0) return;
+  const photo = state.photos[editorPhotoIndex];
+  const stage = document.getElementById("editStage");
+  const img = document.getElementById("editImage");
+  const oriented = getOrientedCanvas(photo);
+  const sw = stage.clientWidth, sh = stage.clientHeight;
+  const scale = Math.max(sw/oriented.width, sh/oriented.height) * editorDraft.zoom;
+  const iw = oriented.width * scale;
+  const ih = oriented.height * scale;
+  const minLeft = sw - iw;
+  const minTop = sh - ih;
+  const left = (sw-iw)/2 + (0.5-editorDraft.x)*(iw-sw);
+  const top = (sh-ih)/2 + (0.5-editorDraft.y)*(ih-sh);
+  img.style.width = iw + "px";
+  img.style.height = ih + "px";
+  img.style.left = Math.min(0, Math.max(minLeft, left)) + "px";
+  img.style.top = Math.min(0, Math.max(minTop, top)) + "px";
+}
+
+function clampEditorFocus(){
+  editorDraft.x = Math.min(1, Math.max(0, editorDraft.x));
+  editorDraft.y = Math.min(1, Math.max(0, editorDraft.y));
+  editorDraft.zoom = Math.min(3, Math.max(1, editorDraft.zoom));
+}
+
+const editStage = document.getElementById("editStage");
+
+editStage.addEventListener("touchstart", e=>{
+  if(editorPhotoIndex < 0) return;
+  e.preventDefault();
+  for(const t of e.changedTouches){
+    activeTouches.set(t.identifier, {x:t.clientX, y:t.clientY});
+  }
+  beginGesture();
+},{passive:false});
+
+editStage.addEventListener("touchmove", e=>{
+  if(editorPhotoIndex < 0) return;
+  e.preventDefault();
+  for(const t of e.changedTouches){
+    activeTouches.set(t.identifier, {x:t.clientX, y:t.clientY});
+  }
+  updateGesture();
+},{passive:false});
+
+editStage.addEventListener("touchend", e=>{
+  for(const t of e.changedTouches) activeTouches.delete(t.identifier);
+  beginGesture();
+},{passive:false});
+
+editStage.addEventListener("touchcancel", e=>{
+  for(const t of e.changedTouches) activeTouches.delete(t.identifier);
+  beginGesture();
+},{passive:false});
+
+let mouseDrag = null;
+editStage.addEventListener("mousedown", e=>{
+  if(editorPhotoIndex < 0) return;
+  e.preventDefault();
+  mouseDrag = {x:e.clientX, y:e.clientY, startX:editorDraft.x, startY:editorDraft.y};
+});
+window.addEventListener("mousemove", e=>{
+  if(!mouseDrag || editorPhotoIndex < 0) return;
+  const photo = state.photos[editorPhotoIndex];
+  const oriented = getOrientedCanvas(photo);
+  const sw = editStage.clientWidth, sh = editStage.clientHeight;
+  const scale = Math.max(sw/oriented.width, sh/oriented.height) * editorDraft.zoom;
+  const iw = oriented.width * scale;
+  const ih = oriented.height * scale;
+  const rangeX = Math.max(1, iw - sw);
+  const rangeY = Math.max(1, ih - sh);
+  editorDraft.x = mouseDrag.startX - (e.clientX - mouseDrag.x)/rangeX;
+  editorDraft.y = mouseDrag.startY - (e.clientY - mouseDrag.y)/rangeY;
+  clampEditorFocus();
+  updateEditorStage();
+});
+window.addEventListener("mouseup", ()=>mouseDrag=null);
+
+editStage.addEventListener("wheel", e=>{
+  if(editorPhotoIndex < 0) return;
+  e.preventDefault();
+  editorDraft.zoom += e.deltaY < 0 ? 0.06 : -0.06;
+  clampEditorFocus();
+  updateEditorStage();
+},{passive:false});
+
+function beginGesture(){
+  const touches = [...activeTouches.values()];
+  if(touches.length === 1){
+    gestureStart = {type:"drag", x:touches[0].x, y:touches[0].y, startX:editorDraft.x, startY:editorDraft.y};
+  }else if(touches.length >= 2){
+    const [a,b] = touches;
+    gestureStart = {
+      type:"pinch",
+      midX:(a.x+b.x)/2,
+      midY:(a.y+b.y)/2,
+      dist:Math.hypot(a.x-b.x, a.y-b.y),
+      startZoom:editorDraft.zoom
+    };
+  }else{
+    gestureStart = null;
+  }
+}
+
+function updateGesture(){
+  const touches = [...activeTouches.values()];
+  if(!gestureStart || editorPhotoIndex < 0) return;
+  const photo = state.photos[editorPhotoIndex];
+  const oriented = getOrientedCanvas(photo);
+  const sw = editStage.clientWidth, sh = editStage.clientHeight;
+  const currentScale = Math.max(sw/oriented.width, sh/oriented.height) * editorDraft.zoom;
+  const iw = oriented.width * currentScale;
+  const ih = oriented.height * currentScale;
+
+  if(gestureStart.type === "drag" && touches.length === 1){
+    const t = touches[0];
+    const rangeX = Math.max(1, iw - sw);
+    const rangeY = Math.max(1, ih - sh);
+    editorDraft.x = gestureStart.startX - (t.x - gestureStart.x)/rangeX;
+    editorDraft.y = gestureStart.startY - (t.y - gestureStart.y)/rangeY;
+    clampEditorFocus();
+    updateEditorStage();
+  }else if(gestureStart.type === "pinch" && touches.length >= 2){
+    const [a,b] = touches;
+    const dist = Math.hypot(a.x-b.x, a.y-b.y);
+    editorDraft.zoom = gestureStart.startZoom * (dist / Math.max(1, gestureStart.dist));
+    clampEditorFocus();
+    updateEditorStage();
+  }
+}
+
 async function exportJpg(){
   if(!state.photos.length) return;
   const btn = document.getElementById("exportBtn");
@@ -1059,25 +979,22 @@ async function exportJpg(){
   btn.textContent = "處理中…";
   try{
     const exportCanvas = document.createElement("canvas");
-    await drawCollage(exportCanvas,false);
+    await drawCollage(exportCanvas, false);
     const blob = await new Promise(resolve=>exportCanvas.toBlob(resolve,"image/jpeg",0.94));
     if(!blob) throw new Error("blob failed");
     const filename = "圖片拼接_" + new Date().toISOString().slice(0,10) + ".jpg";
-    const file = new File([blob],filename,{type:"image/jpeg"});
-
+    const file = new File([blob], filename, {type:"image/jpeg"});
     if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:"圖片拼接"});
+      await navigator.share({files:[file], title:"圖片拼接"});
     }else{
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
+      a.href = url; a.download = filename; a.click();
       setTimeout(()=>URL.revokeObjectURL(url),1500);
       showToast("JPG 已輸出");
     }
   }catch(e){
-    if(e && e.name!=="AbortError"){
+    if(e && e.name !== "AbortError"){
       console.error(e);
       showToast("輸出失敗，請減少照片後再試");
     }
@@ -1087,21 +1004,6 @@ async function exportJpg(){
   }
 }
 
-
-previewCanvas.addEventListener("click", event=>{
-  if(!state.layout.startsWith("grid")) return;
-  const rect = previewCanvas.getBoundingClientRect();
-  const scaleX = previewCanvas.width / rect.width;
-  const scaleY = previewCanvas.height / rect.height;
-  const x = (event.clientX - rect.left) * scaleX;
-  const y = (event.clientY - rect.top) * scaleY;
-  const hit = previewHitboxes.find(box =>
-    x >= box.x && x <= box.x + box.w &&
-    y >= box.y && y <= box.y + box.h
-  );
-  if(hit && hit.index >= 0) selectGridPhoto(hit.index);
-});
-
 function showToast(text){
   const toast = document.getElementById("toast");
   toast.textContent = text;
@@ -1109,26 +1011,16 @@ function showToast(text){
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(()=>toast.classList.remove("show"),1800);
 }
-function escapeHtml(value){
-  return String(value??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s]));
-}
 
-
-["inlineXRange","inlineYRange","inlineZoomRange"].forEach(id=>{
-  document.getElementById(id).addEventListener("input",applyInlineFocus);
-});
-
-document.addEventListener("DOMContentLoaded",()=>{
+document.addEventListener("DOMContentLoaded", ()=>{
   document.getElementById("gapRange").value = state.gap;
   document.getElementById("gapValue").textContent = state.gap;
   document.getElementById("roundRange").value = state.radius;
   document.getElementById("roundValue").textContent = state.radius;
-
-  const modeButton=document.querySelector(`.mode-tab[data-mode="${state.mode}"]`)||document.querySelector('.mode-tab[data-mode="join"]');
-  setMode(modeButton.dataset.mode,modeButton);
   setFit(state.fit);
-
-  document.querySelectorAll(".ratio-btn").forEach(b=>b.classList.toggle("active",b.dataset.ratio===state.ratio));
+  document.querySelectorAll(".ratio-btn").forEach(b=>b.classList.toggle("active", b.dataset.ratio===state.ratio));
+  const modeButton = document.querySelector(`.mode-tab[data-mode="${state.mode}"]`) || document.querySelector('.mode-tab[data-mode="join"]');
+  setMode(modeButton.dataset.mode, modeButton);
   renderPhotos();
 });
 </script>
