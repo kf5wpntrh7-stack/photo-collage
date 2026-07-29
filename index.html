@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#263849">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>手機圖片拼接</title>
+<style>
+:root{
+  --bg:#eef1f4;
+  --card:#fff;
+  --navy:#263849;
+  --navy2:#3e566c;
+  --line:#dce3e8;
+  --text:#22303b;
+  --muted:#72808b;
+  --soft:#e9eef2;
+  --danger:#a24f4f;
+  --shadow:0 7px 24px rgba(31,45,57,.08);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+button,input,select{font:inherit}
+button{-webkit-tap-highlight-color:transparent}
+header{
+  position:sticky;
+  top:0;
+  z-index:30;
+  color:#fff;
+  background:linear-gradient(145deg,var(--navy),var(--navy2));
+  padding:calc(13px + env(safe-area-inset-top)) 14px 13px;
+  box-shadow:0 5px 18px rgba(21,34,45,.2);
+}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:20px;margin:0}
+.subtitle{font-size:12px;opacity:.8;margin-top:3px}
+.reset-top{
+  border:0;background:rgba(255,255,255,.13);color:#fff;
+  border-radius:11px;padding:9px 11px;font-weight:700
+}
+main{max-width:760px;margin:auto;padding:11px 11px calc(105px + env(safe-area-inset-bottom))}
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:15px;
+  box-shadow:var(--shadow);
+  margin-bottom:10px;
+  overflow:hidden;
+}
+.card-title{padding:12px 13px 5px;font-weight:800}
+.card-note{padding:0 13px 12px;font-size:12px;color:var(--muted);line-height:1.45}
+.upload-wrap{padding:12px}
+.upload-box{
+  width:100%;
+  min-height:112px;
+  border:2px dashed #aebbc5;
+  border-radius:14px;
+  background:#f8fafb;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  text-align:center;
+  cursor:pointer;
+}
+.upload-icon{font-size:30px}
+.upload-main{font-weight:800;margin-top:4px}
+.upload-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.hidden{display:none!important}
+.layouts{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  padding:10px 12px 13px;
+}
+.layout{
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:12px;
+  min-height:72px;
+  padding:8px 5px;
+  color:var(--text);
+}
+.layout.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.layout-icon{
+  width:32px;height:32px;margin:auto auto 5px;
+  display:grid;gap:2px
+}
+.layout-icon span{display:block;background:currentColor;border-radius:2px;opacity:.82}
+.icon-v{grid-template-rows:1fr 1fr}
+.icon-h{grid-template-columns:1fr 1fr}
+.icon-4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.icon-6{grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr)}
+.icon-9{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+.layout-label{font-size:12px;font-weight:750}
+.controls{padding:4px 12px 13px}
+.control{margin-top:10px}
+.control:first-child{margin-top:0}
+.control-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.control label{font-size:13px;font-weight:700}
+.control-value{font-size:12px;color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--navy)}
+.segment{
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  background:#edf1f4;border-radius:11px;padding:4px
+}
+.segment button{
+  border:0;background:transparent;border-radius:8px;padding:9px 6px;
+  color:#65737e;font-size:13px;font-weight:750
+}
+.segment button.active{background:#fff;color:var(--text);box-shadow:0 2px 7px rgba(30,44,57,.08)}
+.ratio-wrap{display:none}
+.ratio-wrap.show{display:block}
+.photo-list{padding:4px 10px 10px}
+.photo{
+  display:grid;
+  grid-template-columns:56px 1fr auto;
+  gap:9px;
+  align-items:center;
+  padding:8px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  margin-top:8px;
+  background:#fff;
+}
+.thumb{width:56px;height:56px;object-fit:cover;border-radius:9px;background:#edf1f4}
+.photo-info{min-width:0}
+.photo-name{font-size:13px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.photo-size{font-size:11px;color:var(--muted);margin-top:4px}
+.photo-actions{display:grid;grid-template-columns:repeat(2,32px);gap:4px}
+.photo-actions button{
+  width:32px;height:32px;border:0;border-radius:9px;background:var(--soft);
+  color:#485a68;font-weight:800
+}
+.photo-actions .delete{color:var(--danger)}
+.capacity{
+  display:none;
+  margin:8px 12px 12px;
+  border:1px solid #e5cf80;
+  background:#fff5cf;
+  border-radius:10px;
+  padding:9px 10px;
+  font-size:12px;
+  line-height:1.45
+}
+.capacity.show{display:block}
+.preview-wrap{padding:10px 10px 12px}
+.canvas-shell{
+  min-height:190px;
+  border-radius:13px;
+  overflow:auto;
+  background:#dfe4e8;
+  display:grid;
+  place-items:center;
+  padding:10px;
+}
+canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px 18px rgba(31,45,57,.14)}
+.empty-preview{text-align:center;color:var(--muted);padding:35px 15px;font-size:13px}
+.bottom{
+  position:fixed;
+  left:0;right:0;bottom:0;z-index:35;
+  background:rgba(250,251,252,.96);
+  backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);
+  padding:9px 10px calc(9px + env(safe-area-inset-bottom));
+}
+.bottom-inner{max-width:760px;margin:auto;display:grid;grid-template-columns:1fr 1.35fr;gap:8px}
+.btn{
+  border:0;border-radius:12px;padding:12px 10px;font-weight:800;
+  background:var(--soft);color:var(--text)
+}
+.btn.primary{background:var(--navy);color:#fff}
+.btn:disabled{opacity:.45}
+.toast{
+  position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));
+  transform:translateX(-50%) translateY(20px);
+  background:#263849;color:#fff;padding:9px 13px;border-radius:999px;
+  font-size:12px;opacity:0;pointer-events:none;transition:.2s;z-index:50;
+  white-space:nowrap
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(min-width:700px){
+  .layouts{grid-template-columns:repeat(5,1fr)}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-row">
+    <div>
+      <h1>🖼️ 手機圖片拼接</h1>
+      <div class="subtitle">上下、左右與 IG 格狀拼接</div>
+    </div>
+    <button class="reset-top" onclick="resetAll()">清空</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="upload-wrap">
+      <label class="upload-box" for="fileInput">
+        <div>
+          <div class="upload-icon">＋</div>
+          <div class="upload-main">選擇照片</div>
+          <div class="upload-sub">可一次選多張，最多建議 20 張</div>
+        </div>
+      </label>
+      <input id="fileInput" class="hidden" type="file" accept="image/*" multiple>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">選擇拼接方式</div>
+    <div class="layouts">
+      <button class="layout active" data-layout="vertical" onclick="setLayout('vertical',this)">
+        <div class="layout-icon icon-v"><span></span><span></span></div>
+        <div class="layout-label">上下拼接</div>
+      </button>
+      <button class="layout" data-layout="horizontal" onclick="setLayout('horizontal',this)">
+        <div class="layout-icon icon-h"><span></span><span></span></div>
+        <div class="layout-label">左右拼接</div>
+      </button>
+      <button class="layout" data-layout="grid4" onclick="setLayout('grid4',this)">
+        <div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div>
+        <div class="layout-label">四格</div>
+      </button>
+      <button class="layout" data-layout="grid6" onclick="setLayout('grid6',this)">
+        <div class="layout-icon icon-6"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="layout-label">六格</div>
+      </button>
+      <button class="layout" data-layout="grid9" onclick="setLayout('grid9',this)">
+        <div class="layout-icon icon-9"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="layout-label">九格</div>
+      </button>
+    </div>
+
+    <div class="controls">
+      <div class="control">
+        <div class="control-head">
+          <label for="gapRange">照片間距</label>
+          <span class="control-value"><span id="gapValue">6</span> px</span>
+        </div>
+        <input id="gapRange" type="range" min="0" max="24" value="6">
+      </div>
+
+      <div class="control">
+        <div class="control-head">
+          <label for="roundRange">照片圓角</label>
+          <span class="control-value"><span id="roundValue">0</span> px</span>
+        </div>
+        <input id="roundRange" type="range" min="0" max="30" value="0">
+      </div>
+
+      <div class="control">
+        <div class="control-head"><label>格子內照片</label></div>
+        <div class="segment">
+          <button id="fitCover" class="active" onclick="setFit('cover')">填滿裁切</button>
+          <button id="fitContain" onclick="setFit('contain')">完整顯示</button>
+        </div>
+      </div>
+
+      <div class="control ratio-wrap" id="ratioWrap">
+        <div class="control-head"><label>輸出比例</label></div>
+        <div class="segment" style="grid-template-columns:repeat(3,1fr)">
+          <button class="ratio-btn active" data-ratio="1:1" onclick="setRatio('1:1',this)">1:1</button>
+          <button class="ratio-btn" data-ratio="4:5" onclick="setRatio('4:5',this)">4:5</button>
+          <button class="ratio-btn" data-ratio="9:16" onclick="setRatio('9:16',this)">9:16</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="capacityNote" class="capacity"></div>
+  </section>
+
+  <section class="card" id="photoCard">
+    <div class="card-title">照片順序 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
+    <div class="card-note">使用上下箭頭調整順序；格狀版型會依序由左到右、由上到下排列。</div>
+    <div id="photoList" class="photo-list"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">預覽</div>
+    <div class="preview-wrap">
+      <div class="canvas-shell">
+        <div id="emptyPreview" class="empty-preview">選擇照片後會在這裡預覽</div>
+        <canvas id="previewCanvas" class="hidden"></canvas>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="bottom">
+  <div class="bottom-inner">
+    <button class="btn" onclick="document.getElementById('fileInput').click()">＋ 加照片</button>
+    <button id="exportBtn" class="btn primary" onclick="exportJpg()" disabled>輸出／分享 JPG</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const state = {
+  photos: [],
+  layout: localStorage.getItem("collage_layout") || "vertical",
+  gap: Number(localStorage.getItem("collage_gap") || 6),
+  radius: Number(localStorage.getItem("collage_radius") || 0),
+  fit: localStorage.getItem("collage_fit") || "cover",
+  ratio: localStorage.getItem("collage_ratio") || "1:1"
+};
+const capacities = {grid4:4, grid6:6, grid9:9};
+let previewTimer = null;
+
+const fileInput = document.getElementById("fileInput");
+const previewCanvas = document.getElementById("previewCanvas");
+
+fileInput.addEventListener("change", async (event) => {
+  const files = Array.from(event.target.files || []);
+  if(!files.length) return;
+  const remaining = Math.max(0, 20 - state.photos.length);
+  const selected = files.slice(0, remaining);
+  if(files.length > remaining) showToast("最多保留 20 張照片");
+
+  for(const file of selected){
+    try{
+      const img = await loadImage(file);
+      state.photos.push({
+        id: "p_" + Date.now() + "_" + Math.random().toString(36).slice(2),
+        file,
+        url: img.url,
+        img: img.image,
+        name: file.name,
+        width: img.image.naturalWidth,
+        height: img.image.naturalHeight
+      });
+    }catch(e){
+      showToast("有照片無法讀取");
+    }
+  }
+  fileInput.value = "";
+  renderPhotos();
+  schedulePreview();
+});
+
+function loadImage(file){
+  return new Promise((resolve,reject)=>{
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = ()=>resolve({image,url});
+    image.onerror = ()=>{URL.revokeObjectURL(url);reject(new Error("load failed"))};
+    image.src = url;
+  });
+}
+
+function setLayout(layout, button){
+  state.layout = layout;
+  localStorage.setItem("collage_layout", layout);
+  document.querySelectorAll(".layout").forEach(b=>b.classList.remove("active"));
+  if(button) button.classList.add("active");
+  document.getElementById("ratioWrap").classList.toggle("show", !!capacities[layout]);
+  updateCapacityNote();
+  schedulePreview();
+}
+
+function setFit(fit){
+  state.fit = fit;
+  localStorage.setItem("collage_fit", fit);
+  document.getElementById("fitCover").classList.toggle("active", fit==="cover");
+  document.getElementById("fitContain").classList.toggle("active", fit==="contain");
+  schedulePreview();
+}
+
+function setRatio(ratio, button){
+  state.ratio = ratio;
+  localStorage.setItem("collage_ratio", ratio);
+  document.querySelectorAll(".ratio-btn").forEach(b=>b.classList.remove("active"));
+  if(button) button.classList.add("active");
+  schedulePreview();
+}
+
+document.getElementById("gapRange").addEventListener("input", e=>{
+  state.gap = Number(e.target.value);
+  document.getElementById("gapValue").textContent = state.gap;
+  localStorage.setItem("collage_gap", state.gap);
+  schedulePreview();
+});
+document.getElementById("roundRange").addEventListener("input", e=>{
+  state.radius = Number(e.target.value);
+  document.getElementById("roundValue").textContent = state.radius;
+  localStorage.setItem("collage_radius", state.radius);
+  schedulePreview();
+});
+
+function renderPhotos(){
+  const root = document.getElementById("photoList");
+  root.innerHTML = "";
+  document.getElementById("photoCount").textContent = state.photos.length ? `共 ${state.photos.length} 張` : "";
+  state.photos.forEach((photo,index)=>{
+    const row = document.createElement("div");
+    row.className = "photo";
+    row.innerHTML = `
+      <img class="thumb" src="${photo.url}" alt="">
+      <div class="photo-info">
+        <div class="photo-name">${escapeHtml(photo.name)}</div>
+        <div class="photo-size">${photo.width} × ${photo.height}</div>
+      </div>
+      <div class="photo-actions">
+        <button onclick="movePhoto(${index},-1)" ${index===0?"disabled":""}>↑</button>
+        <button onclick="movePhoto(${index},1)" ${index===state.photos.length-1?"disabled":""}>↓</button>
+        <button class="delete" style="grid-column:1/-1;width:68px" onclick="removePhoto(${index})">刪除</button>
+      </div>`;
+    root.appendChild(row);
+  });
+  document.getElementById("exportBtn").disabled = state.photos.length===0;
+  updateCapacityNote();
+}
+
+function movePhoto(index, direction){
+  const target = index + direction;
+  if(target < 0 || target >= state.photos.length) return;
+  [state.photos[index],state.photos[target]] = [state.photos[target],state.photos[index]];
+  renderPhotos();
+  schedulePreview();
+}
+function removePhoto(index){
+  const removed = state.photos.splice(index,1)[0];
+  if(removed) URL.revokeObjectURL(removed.url);
+  renderPhotos();
+  schedulePreview();
+}
+function resetAll(){
+  if(state.photos.length && !confirm("確定清空全部照片嗎？")) return;
+  state.photos.forEach(p=>URL.revokeObjectURL(p.url));
+  state.photos = [];
+  renderPhotos();
+  schedulePreview();
+}
+
+function updateCapacityNote(){
+  const note = document.getElementById("capacityNote");
+  const cap = capacities[state.layout];
+  if(cap && state.photos.length > cap){
+    note.textContent = `此版型最多輸出 ${cap} 張，目前有 ${state.photos.length} 張；只會使用前 ${cap} 張。`;
+    note.classList.add("show");
+  }else{
+    note.classList.remove("show");
+  }
+}
+
+function schedulePreview(){
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(()=>renderPreview(),120);
+}
+
+async function renderPreview(){
+  if(!state.photos.length){
+    previewCanvas.classList.add("hidden");
+    document.getElementById("emptyPreview").classList.remove("hidden");
+    return;
+  }
+  document.getElementById("emptyPreview").classList.add("hidden");
+  previewCanvas.classList.remove("hidden");
+  try{
+    await drawCollage(previewCanvas, true);
+  }catch(e){
+    showToast("預覽建立失敗");
+    console.error(e);
+  }
+}
+
+function getGridConfig(layout){
+  if(layout==="grid4") return {cols:2,rows:2,cap:4};
+  if(layout==="grid6") return {cols:2,rows:3,cap:6};
+  if(layout==="grid9") return {cols:3,rows:3,cap:9};
+  return null;
+}
+
+function ratioDimensions(ratio, longSide){
+  if(ratio==="4:5") return {w:longSide, h:Math.round(longSide*1.25)};
+  if(ratio==="9:16") return {w:Math.round(longSide*0.5625), h:longSide};
+  return {w:longSide,h:longSide};
+}
+
+async function drawCollage(canvas, preview){
+  const photos = state.photos.slice();
+  if(!photos.length) return;
+
+  let width, height, placements = [];
+  const gapBase = state.gap;
+  const radiusBase = state.radius;
+
+  if(state.layout==="vertical"){
+    width = preview ? 720 : 1800;
+    const gap = preview ? gapBase*1.5 : gapBase*4;
+    let y = 0;
+    photos.forEach((p,i)=>{
+      const h = Math.max(1, Math.round(width * p.height / p.width));
+      placements.push({photo:p,x:0,y,w:width,h,mode:"contain"});
+      y += h + (i < photos.length-1 ? gap : 0);
+    });
+    height = Math.round(y);
+  }else if(state.layout==="horizontal"){
+    height = preview ? 620 : 1500;
+    const gap = preview ? gapBase*1.5 : gapBase*4;
+    let x = 0;
+    photos.forEach((p,i)=>{
+      const w = Math.max(1, Math.round(height * p.width / p.height));
+      placements.push({photo:p,x,y:0,w,h:height,mode:"contain"});
+      x += w + (i < photos.length-1 ? gap : 0);
+    });
+    width = Math.round(x);
+  }else{
+    const cfg = getGridConfig(state.layout);
+    const used = photos.slice(0,cfg.cap);
+    const dims = ratioDimensions(state.ratio, preview ? 760 : (state.ratio==="9:16" ? 3200 : 2400));
+    width = dims.w;
+    height = dims.h;
+    const gap = preview ? gapBase*1.5 : gapBase*4;
+    const cellW = (width - gap*(cfg.cols-1)) / cfg.cols;
+    const cellH = (height - gap*(cfg.rows-1)) / cfg.rows;
+    used.forEach((p,i)=>{
+      const col = i % cfg.cols;
+      const row = Math.floor(i / cfg.cols);
+      placements.push({
+        photo:p,
+        x:col*(cellW+gap),
+        y:row*(cellH+gap),
+        w:cellW,
+        h:cellH,
+        mode:state.fit
+      });
+    });
+  }
+
+  const maxCanvasSide = preview ? 1800 : 8192;
+  const scaleDown = Math.min(1, maxCanvasSide/Math.max(width,height));
+  if(scaleDown < 1){
+    width = Math.round(width*scaleDown);
+    height = Math.round(height*scaleDown);
+    placements = placements.map(p=>({
+      ...p,
+      x:p.x*scaleDown,y:p.y*scaleDown,w:p.w*scaleDown,h:p.h*scaleDown
+    }));
+  }
+
+  canvas.width = Math.max(1,Math.round(width));
+  canvas.height = Math.max(1,Math.round(height));
+  const ctx = canvas.getContext("2d",{alpha:false});
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  const radius = (preview ? radiusBase*1.5 : radiusBase*4) * scaleDown;
+  placements.forEach(p=>drawImageInBox(ctx,p.photo.img,p.x,p.y,p.w,p.h,p.mode,radius));
+}
+
+function roundedRectPath(ctx,x,y,w,h,r){
+  const radius = Math.max(0,Math.min(r,Math.min(w,h)/2));
+  ctx.beginPath();
+  ctx.moveTo(x+radius,y);
+  ctx.arcTo(x+w,y,x+w,y+h,radius);
+  ctx.arcTo(x+w,y+h,x,y+h,radius);
+  ctx.arcTo(x,y+h,x,y,radius);
+  ctx.arcTo(x,y,x+w,y,radius);
+  ctx.closePath();
+}
+
+function drawImageInBox(ctx,img,x,y,w,h,mode,radius){
+  ctx.save();
+  roundedRectPath(ctx,x,y,w,h,radius);
+  ctx.clip();
+
+  if(mode==="contain"){
+    ctx.fillStyle="#fff";
+    ctx.fillRect(x,y,w,h);
+    const scale = Math.min(w/img.naturalWidth,h/img.naturalHeight);
+    const dw = img.naturalWidth*scale;
+    const dh = img.naturalHeight*scale;
+    ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+  }else{
+    const scale = Math.max(w/img.naturalWidth,h/img.naturalHeight);
+    const sw = w/scale;
+    const sh = h/scale;
+    const sx = (img.naturalWidth-sw)/2;
+    const sy = (img.naturalHeight-sh)/2;
+    ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
+  }
+  ctx.restore();
+}
+
+async function exportJpg(){
+  if(!state.photos.length) return;
+  const btn = document.getElementById("exportBtn");
+  btn.disabled = true;
+  btn.textContent = "處理中…";
+  try{
+    const exportCanvas = document.createElement("canvas");
+    await drawCollage(exportCanvas,false);
+    const blob = await new Promise(resolve=>exportCanvas.toBlob(resolve,"image/jpeg",0.94));
+    if(!blob) throw new Error("blob failed");
+    const filename = "圖片拼接_" + new Date().toISOString().slice(0,10) + ".jpg";
+    const file = new File([blob],filename,{type:"image/jpeg"});
+
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:"圖片拼接"});
+    }else{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      showToast("JPG 已輸出");
+    }
+  }catch(e){
+    if(e && e.name!=="AbortError"){
+      console.error(e);
+      showToast("輸出失敗，請減少照片後再試");
+    }
+  }finally{
+    btn.disabled = state.photos.length===0;
+    btn.textContent = "輸出／分享 JPG";
+  }
+}
+
+function showToast(text){
+  const toast = document.getElementById("toast");
+  toast.textContent = text;
+  toast.classList.add("show");
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(()=>toast.classList.remove("show"),1800);
+}
+function escapeHtml(value){
+  return String(value??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s]));
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("gapRange").value = state.gap;
+  document.getElementById("gapValue").textContent = state.gap;
+  document.getElementById("roundRange").value = state.radius;
+  document.getElementById("roundValue").textContent = state.radius;
+
+  const layoutButton = document.querySelector(`.layout[data-layout="${state.layout}"]`) || document.querySelector('.layout[data-layout="vertical"]');
+  setLayout(layoutButton.dataset.layout,layoutButton);
+  setFit(state.fit);
+
+  document.querySelectorAll(".ratio-btn").forEach(b=>b.classList.toggle("active",b.dataset.ratio===state.ratio));
+  renderPhotos();
+});
+</script>
+</body>
+</html>
