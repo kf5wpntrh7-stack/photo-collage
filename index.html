@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>手機圖片拼接 v2.1</title>
+<title>手機圖片拼接 v2.2</title>
 <style>
 :root{
   --bg:#eef1f4;
@@ -169,6 +169,13 @@ input[type=range]{width:100%;accent-color:var(--navy)}
 }
 .focus-cross:before{left:50%;top:0;bottom:0;width:1px}
 .focus-cross:after{top:50%;left:0;right:0;height:1px}
+.focus-sliders{margin-top:12px}
+.focus-slider{margin-top:9px}
+.focus-slider:first-child{margin-top:0}
+.focus-slider-head{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.focus-slider input{width:100%;accent-color:var(--navy)}
+.focus-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.focus-tools button{border:0;border-radius:10px;padding:9px;background:var(--soft);font-weight:750;color:var(--text)}
 .focus-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .focus-actions button{border:0;border-radius:11px;padding:11px;font-weight:800}
 .focus-cancel{background:var(--soft);color:var(--text)}
@@ -200,6 +207,8 @@ input[type=range]{width:100%;accent-color:var(--navy)}
 }
 canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px 18px rgba(31,45,57,.14)}
 .empty-preview{text-align:center;color:var(--muted);padding:35px 15px;font-size:13px}
+.preview-hint{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
+.canvas-shell.grid-editable canvas{cursor:pointer}
 .bottom{
   position:fixed;
   left:0;right:0;bottom:0;z-index:35;
@@ -236,7 +245,7 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
   <div class="header-row">
     <div>
       <h1>🖼️ 手機圖片拼接</h1>
-      <div class="subtitle">基礎拼接＋進階格子取景</div>
+      <div class="subtitle">基礎拼接＋可移動格子取景</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -293,7 +302,7 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
 
   <section class="card" id="photoCard">
     <div class="card-title">照片順序 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
-    <div class="card-note">可調整順序與左右旋轉；「取景」只影響格子模式的填滿裁切，拼接模式仍保留原比例。</div>
+    <div class="card-note">可調整順序與左右旋轉；格子模式可直接點預覽照片，拖動選擇要保留的畫面。</div>
     <div id="photoList" class="photo-list"></div>
   </section>
 
@@ -304,6 +313,7 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
         <div id="emptyPreview" class="empty-preview">選擇照片後會在這裡預覽</div>
         <canvas id="previewCanvas" class="hidden"></canvas>
       </div>
+      <div id="previewHint" class="preview-hint hidden">點一下格子中的照片，可調整要保留的畫面</div>
     </div>
   </section>
 </main>
@@ -320,10 +330,24 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
   <div class="focus-sheet">
     <div class="focus-grab"></div>
     <div class="focus-title">調整格子取景</div>
-    <div class="focus-note">用手指拖動照片，把重要人物或物件移到格子中央。</div>
+    <div class="focus-note">拖動照片，或使用下方滑桿，選擇格子中要保留的畫面。</div>
     <div id="focusStage" class="focus-stage">
       <img id="focusImage" alt="">
       <div class="focus-cross"></div>
+    </div>
+    <div class="focus-sliders">
+      <div class="focus-slider">
+        <div class="focus-slider-head"><span>左右位置</span><span id="focusXText">50%</span></div>
+        <input id="focusXRange" type="range" min="0" max="100" value="50">
+      </div>
+      <div class="focus-slider">
+        <div class="focus-slider-head"><span>上下位置</span><span id="focusYText">50%</span></div>
+        <input id="focusYRange" type="range" min="0" max="100" value="50">
+      </div>
+    </div>
+    <div class="focus-tools">
+      <button onclick="centerFocus()">置中</button>
+      <button onclick="closeFocus()">取消調整</button>
     </div>
     <div class="focus-actions">
       <button class="focus-cancel" onclick="closeFocus()">取消</button>
@@ -346,6 +370,7 @@ const state = {
 };
 const capacities = {grid2h:2,grid2v:2,grid3top:3,grid3left:3,grid3bottom:3,grid3right:3,grid4:4,grid6v:6,grid6h:6,grid9:9};
 let previewTimer = null;
+let previewHitboxes = [];
 
 const fileInput = document.getElementById("fileInput");
 const previewCanvas = document.getElementById("previewCanvas");
@@ -451,7 +476,7 @@ function renderPhotos(){
         <button onclick="rotatePhoto(${index},90)" title="向右旋轉">↷</button>
         <button onclick="movePhoto(${index},-1)" ${index===0?"disabled":""} title="上移">↑</button>
         <button onclick="movePhoto(${index},1)" ${index===state.photos.length-1?"disabled":""} title="下移">↓</button>
-        <button class="focus-btn" onclick="openFocus(${index})" title="調整格子取景">取景</button>
+        <button class="focus-btn" onclick="openFocus(${index})" title="調整格子取景">調畫面</button>
         <button class="delete" onclick="removePhoto(${index})" title="刪除">×</button>
       </div>`;
     root.appendChild(row);
@@ -498,6 +523,7 @@ function openFocus(index){
   img.src = oriented.toDataURL("image/jpeg",0.88);
   document.getElementById("focusModal").classList.add("show");
   document.body.style.overflow = "hidden";
+  syncFocusControls();
   requestAnimationFrame(updateFocusStage);
 }
 
@@ -519,6 +545,20 @@ function saveFocus(){
   schedulePreview();
 }
 
+function syncFocusControls(){
+  const xr = document.getElementById("focusXRange");
+  const yr = document.getElementById("focusYRange");
+  if(xr) xr.value = Math.round(focusDraftX*100);
+  if(yr) yr.value = Math.round(focusDraftY*100);
+  document.getElementById("focusXText").textContent = Math.round(focusDraftX*100)+"%";
+  document.getElementById("focusYText").textContent = Math.round(focusDraftY*100)+"%";
+}
+function centerFocus(){
+  focusDraftX = 0.5;
+  focusDraftY = 0.5;
+  syncFocusControls();
+  updateFocusStage();
+}
 function updateFocusStage(){
   if(focusEditingIndex < 0) return;
   const photo = state.photos[focusEditingIndex];
@@ -552,10 +592,22 @@ focusStage.addEventListener("pointermove", e=>{
   const rangeX = Math.max(1,iw-sw), rangeY = Math.max(1,ih-sh);
   focusDraftX = Math.min(1,Math.max(0,focusDragStart.fx-(e.clientX-focusDragStart.x)/rangeX));
   focusDraftY = Math.min(1,Math.max(0,focusDragStart.fy-(e.clientY-focusDragStart.y)/rangeY));
+  syncFocusControls();
   updateFocusStage();
 });
 focusStage.addEventListener("pointerup",()=>focusDragStart=null);
 focusStage.addEventListener("pointercancel",()=>focusDragStart=null);
+
+document.getElementById("focusXRange").addEventListener("input",e=>{
+  focusDraftX = Number(e.target.value)/100;
+  syncFocusControls();
+  updateFocusStage();
+});
+document.getElementById("focusYRange").addEventListener("input",e=>{
+  focusDraftY = Number(e.target.value)/100;
+  syncFocusControls();
+  updateFocusStage();
+});
 
 function removePhoto(index){
   const removed = state.photos.splice(index,1)[0];
@@ -592,12 +644,16 @@ async function renderPreview(){
   if(!state.photos.length){
     previewCanvas.classList.add("hidden");
     document.getElementById("emptyPreview").classList.remove("hidden");
+    document.getElementById("previewHint").classList.add("hidden");
     return;
   }
   document.getElementById("emptyPreview").classList.add("hidden");
   previewCanvas.classList.remove("hidden");
   try{
     await drawCollage(previewCanvas, true);
+    const isGrid = state.layout.startsWith("grid");
+    document.getElementById("previewHint").classList.toggle("hidden", !isGrid);
+    document.querySelector(".canvas-shell").classList.toggle("grid-editable", isGrid);
   }catch(e){
     showToast("預覽建立失敗");
     console.error(e);
@@ -616,6 +672,7 @@ function ratioDimensions(ratio, longSide){
 
 async function drawCollage(canvas, preview){
   const photos = state.photos.slice();
+  if(preview) previewHitboxes = [];
   if(!photos.length) return;
 
   let width, height, placements = [];
@@ -675,7 +732,15 @@ async function drawCollage(canvas, preview){
   ctx.imageSmoothingQuality = "high";
 
   const radius = (preview ? radiusBase*1.5 : radiusBase*4) * scaleDown;
-  placements.forEach(p=>drawImageInBox(ctx,p.photo,p.x,p.y,p.w,p.h,p.mode,radius));
+  placements.forEach((p,index)=>{
+    drawImageInBox(ctx,p.photo,p.x,p.y,p.w,p.h,p.mode,radius);
+    if(preview){
+      previewHitboxes.push({
+        index: state.photos.indexOf(p.photo),
+        x:p.x,y:p.y,w:p.w,h:p.h
+      });
+    }
+  });
 }
 
 
@@ -767,6 +832,21 @@ async function exportJpg(){
     btn.textContent = "輸出／分享 JPG";
   }
 }
+
+
+previewCanvas.addEventListener("click", event=>{
+  if(!state.layout.startsWith("grid")) return;
+  const rect = previewCanvas.getBoundingClientRect();
+  const scaleX = previewCanvas.width / rect.width;
+  const scaleY = previewCanvas.height / rect.height;
+  const x = (event.clientX - rect.left) * scaleX;
+  const y = (event.clientY - rect.top) * scaleY;
+  const hit = previewHitboxes.find(box =>
+    x >= box.x && x <= box.x + box.w &&
+    y >= box.y && y <= box.y + box.h
+  );
+  if(hit && hit.index >= 0) openFocus(hit.index);
+});
 
 function showToast(text){
   const toast = document.getElementById("toast");
