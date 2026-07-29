@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>手機圖片拼接 v5.1</title>
+<title>手機圖片拼接 v5.2</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -236,6 +236,55 @@ main{padding-top:10px}
 .edit-stage.drag-active{cursor:grabbing;outline:3px solid #33a0ff}
 .edit-stage.pinch-active{outline:3px solid #7b70ff}
 
+
+.card{margin-bottom:8px}
+.photo-strip{padding-top:6px;padding-bottom:8px}
+.layout-scroll{padding-top:7px;padding-bottom:9px}
+.preview-wrap{padding-top:6px}
+.bottom-inner{grid-template-columns:1fr 1.2fr}
+.edit-modal{
+  position:fixed;inset:0;z-index:100;
+  display:none;align-items:stretch;justify-content:stretch;
+  background:#111820;overscroll-behavior:none;touch-action:none
+}
+.edit-modal.show{display:block}
+.edit-sheet{
+  width:100%;height:100dvh;max-width:none!important;border-radius:0!important;
+  padding:calc(10px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+  background:#111820;color:#fff;display:flex;flex-direction:column;
+  overflow:hidden;overscroll-behavior:none;touch-action:none
+}
+.edit-grab{display:none}
+.edit-title{font-size:18px;color:#fff}
+.edit-note{color:#b8c3cc;margin-bottom:8px}
+.gesture-status{
+  width:100%;margin:0 0 8px;background:#1f2c36;color:#d8e8f4
+}
+.edit-stage{
+  flex:1;width:100%;min-height:0;margin:0;
+  border-radius:14px;background:#0a0f13;border:1px solid #344551;
+  touch-action:none!important;overscroll-behavior:none!important;
+  overflow:hidden;position:relative
+}
+.edit-stage img{
+  position:absolute;left:50%;top:50%;max-width:none;max-height:none;
+  transform-origin:center center;will-change:transform;
+  user-select:none;-webkit-user-select:none;-webkit-user-drag:none;pointer-events:none
+}
+.edit-actions,.zoom-buttons{width:100%;max-width:none}
+.zoom-buttons button,.edit-actions .soft{background:#263743;color:#fff}
+.edit-actions .primary{background:#3b82f6;color:#fff}
+body.editor-locked{
+  position:fixed!important;
+  width:100%!important;
+  overflow:hidden!important;
+  touch-action:none!important;
+}
+@media(min-width:700px){
+  .edit-modal{padding:0}
+  .edit-sheet{max-width:none}
+}
+
 </style>
 </head>
 <body>
@@ -243,7 +292,7 @@ main{padding-top:10px}
   <div class="header-row">
     <div>
       <h1>🖼️ 手機圖片拼接</h1>
-      <div class="subtitle">v5.1・修正格子預覽與單格手勢</div>
+      <div class="subtitle">v5.2・全螢幕單格編輯</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -251,23 +300,10 @@ main{padding-top:10px}
 
 
 <main>
-  <section class="card" id="topUploadCard">
-    <div class="upload-wrap">
-      <label class="upload-box" for="fileInput">
-        <div>
-          <div class="upload-icon">＋</div>
-          <div class="upload-main">選擇照片</div>
-          <div class="upload-sub">可一次選多張</div>
-        </div>
-      </label>
-      <input id="fileInput" class="hidden" type="file" accept="image/*" multiple>
-    </div>
-  </section>
-
-  <section class="card">
+<section class="card">
     <div class="card-title">照片 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
     <div class="compact-note">左右滑動查看；旋轉後縮圖會立刻更新。</div>
-    <div id="photoStrip" class="photo-strip"></div>
+    <div id="photoStrip" class="photo-strip"></div><div id="emptyPhotoHint" class="card-note">請使用下方「＋ 加照片」開始。</div>
   </section>
 
   <section class="card">
@@ -331,6 +367,24 @@ main{padding-top:10px}
         </button>
       </div>
     </div>
+<div id="capacityNote" class="capacity"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">預覽</div>
+    <div class="preview-wrap">
+      <div class="canvas-shell">
+        <div id="emptyPreview" class="empty-preview">選擇照片後會在這裡預覽</div>
+        <div id="canvasStage" class="canvas-stage hidden">
+          <canvas id="previewCanvas"></canvas>
+          <div id="gridOverlay" class="grid-overlay"></div>
+        </div>
+      </div>
+      <div id="previewHint" class="preview-hint hidden">
+        <strong>格子模式：</strong>點格子編號後，可單獨拖曳與雙指縮放
+      </div>
+    </div>
+  </section>
 
     <details class="settings-details">
       <summary>間距、圓角與比例</summary>
@@ -361,23 +415,6 @@ main{padding-top:10px}
       </div>
     </details>
     <div id="capacityNote" class="capacity"></div>
-  </section>
-
-  <section class="card">
-    <div class="card-title">預覽</div>
-    <div class="preview-wrap">
-      <div class="canvas-shell">
-        <div id="emptyPreview" class="empty-preview">選擇照片後會在這裡預覽</div>
-        <div id="canvasStage" class="canvas-stage hidden">
-          <canvas id="previewCanvas"></canvas>
-          <div id="gridOverlay" class="grid-overlay"></div>
-        </div>
-      </div>
-      <div id="previewHint" class="preview-hint hidden">
-        <strong>格子模式：</strong>點格子編號後，可單獨拖曳與雙指縮放
-      </div>
-    </div>
-  </section>
 </main>
 
 
@@ -466,6 +503,10 @@ fileInput.addEventListener("change", async (event)=>{
   }
   fileInput.value = "";
   renderPhotos();
+  if(state.mode==="grid" && !state.layout.startsWith("grid")){
+    const firstGrid = document.querySelector("#gridLayouts .layout");
+    setLayout(firstGrid.dataset.layout, firstGrid);
+  }
   await renderPreview();
 });
 
@@ -492,7 +533,12 @@ function setMode(mode, button){
   const activePanel = mode==="join" ? document.getElementById("joinLayouts") : document.getElementById("gridLayouts");
   let candidate = activePanel.querySelector(`.layout[data-layout="${state.layout}"]`);
   if(!candidate) candidate = activePanel.querySelector(".layout");
-  setLayout(candidate.dataset.layout, candidate);
+  state.layout = candidate.dataset.layout;
+  localStorage.setItem("collage_layout", state.layout);
+  document.querySelectorAll(".layout").forEach(b=>b.classList.remove("active"));
+  candidate.classList.add("active");
+  document.getElementById("ratioWrap").classList.toggle("show", !!capacities[state.layout]);
+  updateCapacityNote();
   if(state.photos.length) renderPreview();
 }
 
@@ -560,7 +606,7 @@ function renderPhotos(){
     root.appendChild(chip);
   });
   document.getElementById("exportBtn").disabled = state.photos.length===0;
-  document.getElementById("topUploadCard").classList.toggle("hidden", state.photos.length>0);
+  document.getElementById("emptyPhotoHint").classList.toggle("hidden", state.photos.length>0);
   updateCapacityNote();
 }
 
@@ -871,6 +917,32 @@ function buildGridOverlay(){
 }
 
 
+
+let lockedScrollY = 0;
+let editorIsOpen = false;
+
+function lockPageForEditor(){
+  lockedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  editorIsOpen = true;
+  document.body.classList.add("editor-locked");
+  document.body.style.top = `-${lockedScrollY}px`;
+}
+
+function unlockPageFromEditor(){
+  editorIsOpen = false;
+  document.body.classList.remove("editor-locked");
+  document.body.style.top = "";
+  window.scrollTo(0, lockedScrollY);
+}
+
+document.addEventListener("touchmove", e=>{
+  if(editorIsOpen) e.preventDefault();
+},{passive:false,capture:true});
+
+document.addEventListener("wheel", e=>{
+  if(editorIsOpen && !e.target.closest("#editStage")) e.preventDefault();
+},{passive:false,capture:true});
+
 function openEditor(index, hitbox){
   const photo = state.photos[index];
   if(!photo) return;
@@ -887,8 +959,8 @@ function openEditor(index, hitbox){
   stage.style.aspectRatio = `${editorAspect}`;
   const oriented = getOrientedCanvas(photo);
   document.getElementById("editImage").src = oriented.toDataURL("image/jpeg",0.92);
+  lockPageForEditor();
   document.getElementById("editModal").classList.add("show");
-  document.body.style.overflow = "hidden";
   document.getElementById("gestureStatus").textContent = "請在照片上拖動";
   requestAnimationFrame(()=>{
     initializeEditorPosition();
@@ -940,10 +1012,9 @@ function updateEditorStage(){
   const m = currentEditorMetrics();
   if(!m) return;
   clampEditorPan();
-  img.style.width = m.iw+"px";
-  img.style.height = m.ih+"px";
-  img.style.left = (m.sw-m.iw)/2 + editorDraft.panX + "px";
-  img.style.top = (m.sh-m.ih)/2 + editorDraft.panY + "px";
+  img.style.width = (editorBase.ow * editorBase.baseScale) + "px";
+  img.style.height = (editorBase.oh * editorBase.baseScale) + "px";
+  img.style.transform = `translate3d(calc(-50% + ${editorDraft.panX}px), calc(-50% + ${editorDraft.panY}px), 0) scale(${editorDraft.zoom})`;
 }
 
 function editorZoomBy(delta){
@@ -979,7 +1050,7 @@ function saveEditor(){
 
 function closeEditor(){
   document.getElementById("editModal").classList.remove("show");
-  document.body.style.overflow = "";
+  unlockPageFromEditor();
   editorPhotoIndex = -1;
   editorBase = null;
   touchGesture = null;
