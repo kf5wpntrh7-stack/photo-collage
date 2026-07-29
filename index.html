@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>手機圖片拼接 v4.1</title>
+<title>手機圖片拼接 v5</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -194,6 +194,31 @@ canvas{display:block;width:100%;height:auto;background:#fff;box-shadow:0 5px 18p
   .edit-modal{align-items:center;justify-content:center;padding:20px}
   .edit-sheet{max-width:520px;border-radius:20px}
 }
+
+main{padding-top:10px}
+.settings-details{border-top:1px solid var(--line)}
+.settings-details summary{
+  list-style:none;cursor:pointer;padding:11px 13px;font-size:13px;font-weight:800;color:#4d6070;
+  user-select:none;-webkit-user-select:none
+}
+.settings-details summary::-webkit-details-marker{display:none}
+.settings-details summary:after{content:"＋";float:right}
+.settings-details[open] summary:after{content:"－"}
+.thumb-wrap{
+  width:80px;height:80px;border-radius:9px;background:#edf1f4;overflow:hidden;position:relative;
+  display:grid;place-items:center
+}
+.thumb-wrap img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
+.rotation-badge{
+  position:absolute;right:4px;bottom:4px;background:rgba(38,56,73,.82);color:#fff;
+  border-radius:999px;padding:3px 6px;font-size:10px;font-weight:800
+}
+.rotate-flash{animation:rotateFlash .3s ease}
+@keyframes rotateFlash{0%{transform:scale(.92)}100%{transform:scale(1)}}
+.edit-stage{touch-action:none!important;overscroll-behavior:contain}
+.edit-stage.dragging{outline:3px solid #33a0ff}
+.edit-stage.pinching{outline:3px solid #6b7cff}
+
 </style>
 </head>
 <body>
@@ -201,105 +226,97 @@ canvas{display:block;width:100%;height:auto;background:#fff;box-shadow:0 5px 18p
   <div class="header-row">
     <div>
       <h1>🖼️ 手機圖片拼接</h1>
-      <div class="subtitle">v4.1・真正單格點擊編輯</div>
+      <div class="subtitle">v5・單頁操作＋單格拖曳縮放</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
 </header>
 
-<div class="step-tabs">
-  <button class="step-tab active" data-step="photos" onclick="showStep('photos',this)">① 照片</button>
-  <button class="step-tab" data-step="layout" onclick="showStep('layout',this)">② 版型</button>
-  <button class="step-tab" data-step="preview" onclick="showStep('preview',this)">③ 預覽</button>
-</div>
 
 <main>
-  <section id="stepPhotos" class="step-panel active">
-    <section class="card" id="topUploadCard">
-      <div class="upload-wrap">
-        <label class="upload-box" for="fileInput">
-          <div>
-            <div class="upload-icon">＋</div>
-            <div class="upload-main">選擇照片</div>
-            <div class="upload-sub">可一次選多張，之後再慢慢排序</div>
-          </div>
-        </label>
-        <input id="fileInput" class="hidden" type="file" accept="image/*" multiple>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="card-title">照片順序 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
-      <div class="compact-note">左右滑動查看；可旋轉、前移、後移、刪除。</div>
-      <div id="photoStrip" class="photo-strip"></div>
-    </section>
-
-    <button class="btn primary full-btn" onclick="showStep('layout',document.querySelector('[data-step=layout]'))">下一步：選版型</button>
+  <section class="card" id="topUploadCard">
+    <div class="upload-wrap">
+      <label class="upload-box" for="fileInput">
+        <div>
+          <div class="upload-icon">＋</div>
+          <div class="upload-main">選擇照片</div>
+          <div class="upload-sub">可一次選多張</div>
+        </div>
+      </label>
+      <input id="fileInput" class="hidden" type="file" accept="image/*" multiple>
+    </div>
   </section>
 
-  <section id="stepLayout" class="step-panel">
-    <section class="card">
-      <div class="card-title">選擇版型</div>
-      <div class="mode-tabs">
-        <button class="mode-tab active" data-mode="join" onclick="setMode('join',this)">拼接</button>
-        <button class="mode-tab" data-mode="grid" onclick="setMode('grid',this)">格子</button>
-      </div>
+  <section class="card">
+    <div class="card-title">照片 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
+    <div class="compact-note">左右滑動查看；旋轉後縮圖會立刻更新。</div>
+    <div id="photoStrip" class="photo-strip"></div>
+  </section>
 
-      <div id="joinLayouts" class="layout-panel active">
-        <div class="layout-scroll">
-          <button class="layout active" data-layout="vertical" onclick="setLayout('vertical',this)">
-            <div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">上下</div>
-          </button>
-          <button class="layout" data-layout="horizontal" onclick="setLayout('horizontal',this)">
-            <div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">左右</div>
-          </button>
-          <button class="layout" data-layout="vertical3" onclick="setLayout('vertical3',this)">
-            <div class="layout-icon icon-v3"><span></span><span></span><span></span></div><div class="layout-label">3 直排</div>
-          </button>
-          <button class="layout" data-layout="horizontal3" onclick="setLayout('horizontal3',this)">
-            <div class="layout-icon icon-h3"><span></span><span></span><span></span></div><div class="layout-label">3 橫排</div>
-          </button>
-          <button class="layout" data-layout="vertical4" onclick="setLayout('vertical4',this)">
-            <div class="layout-icon icon-v4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 直排</div>
-          </button>
-          <button class="layout" data-layout="horizontal4" onclick="setLayout('horizontal4',this)">
-            <div class="layout-icon icon-h4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 橫排</div>
-          </button>
-        </div>
-      </div>
+  <section class="card">
+    <div class="card-title">版型</div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="join" onclick="setMode('join',this)">拼接</button>
+      <button class="mode-tab" data-mode="grid" onclick="setMode('grid',this)">格子</button>
+    </div>
 
-      <div id="gridLayouts" class="layout-panel">
-        <div class="layout-scroll">
-          <button class="layout" data-layout="grid2h" onclick="setLayout('grid2h',this)">
-            <div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">2 左右</div>
-          </button>
-          <button class="layout" data-layout="grid2v" onclick="setLayout('grid2v',this)">
-            <div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">2 上下</div>
-          </button>
-          <button class="layout" data-layout="grid3top" onclick="setLayout('grid3top',this)">
-            <div class="layout-icon custom-grid"><span class="big-top"></span><span></span><span></span></div><div class="layout-label">上1下2</div>
-          </button>
-          <button class="layout" data-layout="grid3left" onclick="setLayout('grid3left',this)">
-            <div class="layout-icon custom-grid left-big"><span class="big-left"></span><span></span><span></span></div><div class="layout-label">左1右2</div>
-          </button>
-          <button class="layout" data-layout="grid3bottom" onclick="setLayout('grid3bottom',this)">
-            <div class="layout-icon custom-grid"><span></span><span></span><span class="big-bottom"></span></div><div class="layout-label">上2下1</div>
-          </button>
-          <button class="layout" data-layout="grid3right" onclick="setLayout('grid3right',this)">
-            <div class="layout-icon custom-grid right-big"><span></span><span></span><span class="big-right"></span></div><div class="layout-label">左2右1</div>
-          </button>
-          <button class="layout" data-layout="grid4" onclick="setLayout('grid4',this)">
-            <div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 格</div>
-          </button>
-          <button class="layout" data-layout="grid6v" onclick="setLayout('grid6v',this)">
-            <div class="layout-icon icon-6"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">6 格</div>
-          </button>
-          <button class="layout" data-layout="grid9" onclick="setLayout('grid9',this)">
-            <div class="layout-icon icon-9"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">9 格</div>
-          </button>
-        </div>
+    <div id="joinLayouts" class="layout-panel active">
+      <div class="layout-scroll">
+        <button class="layout active" data-layout="vertical" onclick="setLayout('vertical',this)">
+          <div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">上下</div>
+        </button>
+        <button class="layout" data-layout="horizontal" onclick="setLayout('horizontal',this)">
+          <div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">左右</div>
+        </button>
+        <button class="layout" data-layout="vertical3" onclick="setLayout('vertical3',this)">
+          <div class="layout-icon icon-v3"><span></span><span></span><span></span></div><div class="layout-label">3 直排</div>
+        </button>
+        <button class="layout" data-layout="horizontal3" onclick="setLayout('horizontal3',this)">
+          <div class="layout-icon icon-h3"><span></span><span></span><span></span></div><div class="layout-label">3 橫排</div>
+        </button>
+        <button class="layout" data-layout="vertical4" onclick="setLayout('vertical4',this)">
+          <div class="layout-icon icon-v4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 直排</div>
+        </button>
+        <button class="layout" data-layout="horizontal4" onclick="setLayout('horizontal4',this)">
+          <div class="layout-icon icon-h4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 橫排</div>
+        </button>
       </div>
+    </div>
 
+    <div id="gridLayouts" class="layout-panel">
+      <div class="layout-scroll">
+        <button class="layout" data-layout="grid2h" onclick="setLayout('grid2h',this)">
+          <div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">2 左右</div>
+        </button>
+        <button class="layout" data-layout="grid2v" onclick="setLayout('grid2v',this)">
+          <div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">2 上下</div>
+        </button>
+        <button class="layout" data-layout="grid3top" onclick="setLayout('grid3top',this)">
+          <div class="layout-icon custom-grid"><span class="big-top"></span><span></span><span></span></div><div class="layout-label">上1下2</div>
+        </button>
+        <button class="layout" data-layout="grid3left" onclick="setLayout('grid3left',this)">
+          <div class="layout-icon custom-grid left-big"><span class="big-left"></span><span></span><span></span></div><div class="layout-label">左1右2</div>
+        </button>
+        <button class="layout" data-layout="grid3bottom" onclick="setLayout('grid3bottom',this)">
+          <div class="layout-icon custom-grid"><span></span><span></span><span class="big-bottom"></span></div><div class="layout-label">上2下1</div>
+        </button>
+        <button class="layout" data-layout="grid3right" onclick="setLayout('grid3right',this)">
+          <div class="layout-icon custom-grid right-big"><span></span><span></span><span class="big-right"></span></div><div class="layout-label">左2右1</div>
+        </button>
+        <button class="layout" data-layout="grid4" onclick="setLayout('grid4',this)">
+          <div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 格</div>
+        </button>
+        <button class="layout" data-layout="grid6v" onclick="setLayout('grid6v',this)">
+          <div class="layout-icon icon-6"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">6 格</div>
+        </button>
+        <button class="layout" data-layout="grid9" onclick="setLayout('grid9',this)">
+          <div class="layout-icon icon-9"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">9 格</div>
+        </button>
+      </div>
+    </div>
+
+    <details class="settings-details">
+      <summary>間距、圓角與比例</summary>
       <div class="controls">
         <div class="control">
           <div class="control-head"><label for="gapRange">照片間距</label><span class="control-value"><span id="gapValue">6</span> px</span></div>
@@ -325,30 +342,27 @@ canvas{display:block;width:100%;height:auto;background:#fff;box-shadow:0 5px 18p
           </div>
         </div>
       </div>
-      <div id="capacityNote" class="capacity"></div>
-    </section>
-
-    <button class="btn primary full-btn" onclick="showStep('preview',document.querySelector('[data-step=preview]'))">下一步：預覽</button>
+    </details>
+    <div id="capacityNote" class="capacity"></div>
   </section>
 
-  <section id="stepPreview" class="step-panel">
-    <section class="card">
-      <div class="card-title">預覽</div>
-      <div class="preview-wrap">
-        <div class="canvas-shell">
-          <div id="emptyPreview" class="empty-preview">選擇照片後會在這裡預覽</div>
-          <div id="canvasStage" class="canvas-stage hidden">
-            <canvas id="previewCanvas"></canvas>
-            <div id="gridOverlay" class="grid-overlay"></div>
-          </div>
-        </div>
-        <div id="previewHint" class="preview-hint hidden">
-          <strong>格子模式：</strong>點一下某張格子照片，可直接拖曳與雙指縮放
+  <section class="card">
+    <div class="card-title">預覽</div>
+    <div class="preview-wrap">
+      <div class="canvas-shell">
+        <div id="emptyPreview" class="empty-preview">選擇照片後會在這裡預覽</div>
+        <div id="canvasStage" class="canvas-stage hidden">
+          <canvas id="previewCanvas"></canvas>
+          <div id="gridOverlay" class="grid-overlay"></div>
         </div>
       </div>
-    </section>
+      <div id="previewHint" class="preview-hint hidden">
+        <strong>格子模式：</strong>點格子編號後，可單獨拖曳與雙指縮放
+      </div>
+    </div>
   </section>
 </main>
+
 
 <div class="bottom">
   <div class="bottom-inner">
@@ -399,8 +413,6 @@ let previewHitboxes = [];
 let editorPhotoIndex = -1;
 let editorDraft = {x:0.5,y:0.5,zoom:1};
 let editorAspect = 1;
-let activeTouches = new Map();
-let gestureStart = null;
 
 fileInput.addEventListener("change", async (event)=>{
   const files = Array.from(event.target.files || []);
@@ -444,15 +456,7 @@ function loadImage(file){
   });
 }
 
-function showStep(step, button){
-  document.querySelectorAll(".step-panel").forEach(p=>p.classList.remove("active"));
-  document.querySelectorAll(".step-tab").forEach(b=>b.classList.remove("active"));
-  const panel = document.getElementById("step" + step.charAt(0).toUpperCase() + step.slice(1));
-  if(panel) panel.classList.add("active");
-  if(button) button.classList.add("active");
-  if(step === "preview") schedulePreview();
-  window.scrollTo({top:0, behavior:"smooth"});
-}
+
 
 function setMode(mode, button){
   state.mode = mode;
@@ -514,8 +518,12 @@ function renderPhotos(){
   state.photos.forEach((photo,index)=>{
     const chip = document.createElement("div");
     chip.className = "photo-chip";
+    const thumbSrc = getOrientedCanvas(photo).toDataURL("image/jpeg",0.84);
     chip.innerHTML = `
-      <img src="${photo.url}" alt="">
+      <div class="thumb-wrap">
+        <img src="${thumbSrc}" alt="">
+        <span class="rotation-badge">${photo.rotation || 0}°</span>
+      </div>
       <div class="photo-chip-index">第 ${index+1} 張</div>
       <div class="photo-chip-actions">
         <button onclick="rotatePhoto(${index},-90)">↶</button>
@@ -557,6 +565,7 @@ function rotatePhoto(index, delta){
   }
   renderPhotos();
   schedulePreview();
+  showToast(delta < 0 ? "已向左旋轉 90°" : "已向右旋轉 90°");
 }
 
 function resetAll(){
@@ -843,7 +852,7 @@ function openEditor(index, hitbox){
   editorDraft = {
     x: Number.isFinite(photo.focusX) ? photo.focusX : 0.5,
     y: Number.isFinite(photo.focusY) ? photo.focusY : 0.5,
-    zoom: Number.isFinite(photo.zoom) ? photo.zoom : 1
+    zoom: Number.isFinite(photo.zoom) ? Math.max(1.06, photo.zoom) : 1.06
   };
   editorAspect = hitbox && hitbox.w > 0 && hitbox.h > 0 ? (hitbox.w / hitbox.h) : 1;
   const stage = document.getElementById("editStage");
@@ -853,8 +862,6 @@ function openEditor(index, hitbox){
   img.src = oriented.toDataURL("image/jpeg", 0.92);
   document.getElementById("editModal").classList.add("show");
   document.body.style.overflow = "hidden";
-  activeTouches.clear();
-  gestureStart = null;
   requestAnimationFrame(updateEditorStage);
 }
 
@@ -862,9 +869,10 @@ function closeEditor(){
   document.getElementById("editModal").classList.remove("show");
   document.body.style.overflow = "";
   editorPhotoIndex = -1;
+  editorPointers.clear();
+  pointerGesture = null;
+  editStage.classList.remove("dragging","pinching");
   document.querySelectorAll(".grid-hit").forEach(el=>el.classList.remove("selected"));
-  activeTouches.clear();
-  gestureStart = null;
 }
 function closeEditorByBackdrop(event){
   if(event.target.id === "editModal") closeEditor();
@@ -910,58 +918,97 @@ function clampEditorFocus(){
   editorDraft.zoom = Math.min(3, Math.max(1, editorDraft.zoom));
 }
 
+
 const editStage = document.getElementById("editStage");
+const editorPointers = new Map();
+let pointerGesture = null;
 
-editStage.addEventListener("touchstart", e=>{
-  if(editorPhotoIndex < 0) return;
-  e.preventDefault();
-  for(const t of e.changedTouches){
-    activeTouches.set(t.identifier, {x:t.clientX, y:t.clientY});
-  }
-  beginGesture();
-},{passive:false});
-
-editStage.addEventListener("touchmove", e=>{
-  if(editorPhotoIndex < 0) return;
-  e.preventDefault();
-  for(const t of e.changedTouches){
-    activeTouches.set(t.identifier, {x:t.clientX, y:t.clientY});
-  }
-  updateGesture();
-},{passive:false});
-
-editStage.addEventListener("touchend", e=>{
-  for(const t of e.changedTouches) activeTouches.delete(t.identifier);
-  beginGesture();
-},{passive:false});
-
-editStage.addEventListener("touchcancel", e=>{
-  for(const t of e.changedTouches) activeTouches.delete(t.identifier);
-  beginGesture();
-},{passive:false});
-
-let mouseDrag = null;
-editStage.addEventListener("mousedown", e=>{
-  if(editorPhotoIndex < 0) return;
-  e.preventDefault();
-  mouseDrag = {x:e.clientX, y:e.clientY, startX:editorDraft.x, startY:editorDraft.y};
-});
-window.addEventListener("mousemove", e=>{
-  if(!mouseDrag || editorPhotoIndex < 0) return;
+function editorMetrics(){
   const photo = state.photos[editorPhotoIndex];
+  if(!photo) return null;
   const oriented = getOrientedCanvas(photo);
-  const sw = editStage.clientWidth, sh = editStage.clientHeight;
+  const sw = editStage.clientWidth;
+  const sh = editStage.clientHeight;
   const scale = Math.max(sw/oriented.width, sh/oriented.height) * editorDraft.zoom;
   const iw = oriented.width * scale;
   const ih = oriented.height * scale;
-  const rangeX = Math.max(1, iw - sw);
-  const rangeY = Math.max(1, ih - sh);
-  editorDraft.x = mouseDrag.startX - (e.clientX - mouseDrag.x)/rangeX;
-  editorDraft.y = mouseDrag.startY - (e.clientY - mouseDrag.y)/rangeY;
-  clampEditorFocus();
-  updateEditorStage();
+  return {sw,sh,iw,ih,rangeX:Math.max(1,iw-sw),rangeY:Math.max(1,ih-sh)};
+}
+
+function startPointerGesture(){
+  const points = [...editorPointers.values()];
+  if(points.length === 1){
+    const p = points[0];
+    pointerGesture = {
+      type:"drag",
+      x:p.x, y:p.y,
+      startX:editorDraft.x,
+      startY:editorDraft.y
+    };
+    editStage.classList.add("dragging");
+    editStage.classList.remove("pinching");
+  }else if(points.length >= 2){
+    const a = points[0], b = points[1];
+    pointerGesture = {
+      type:"pinch",
+      distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),
+      startZoom:editorDraft.zoom
+    };
+    editStage.classList.add("pinching");
+    editStage.classList.remove("dragging");
+  }else{
+    pointerGesture = null;
+    editStage.classList.remove("dragging","pinching");
+  }
+}
+
+editStage.addEventListener("pointerdown", e=>{
+  if(editorPhotoIndex < 0) return;
+  e.preventDefault();
+  editStage.setPointerCapture(e.pointerId);
+  editorPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  startPointerGesture();
 });
-window.addEventListener("mouseup", ()=>mouseDrag=null);
+
+editStage.addEventListener("pointermove", e=>{
+  if(!editorPointers.has(e.pointerId) || editorPhotoIndex < 0) return;
+  e.preventDefault();
+  editorPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const points = [...editorPointers.values()];
+  if(!pointerGesture) startPointerGesture();
+
+  if(pointerGesture && pointerGesture.type==="drag" && points.length===1){
+    const p = points[0];
+    let metrics = editorMetrics();
+    if(!metrics) return;
+
+    // 照片幾乎沒有可移動空間時，自動稍微放大。
+    if(metrics.rangeX <= 2 && metrics.rangeY <= 2 && editorDraft.zoom < 1.12){
+      editorDraft.zoom = 1.12;
+      metrics = editorMetrics();
+    }
+    editorDraft.x = pointerGesture.startX - (p.x-pointerGesture.x)/metrics.rangeX;
+    editorDraft.y = pointerGesture.startY - (p.y-pointerGesture.y)/metrics.rangeY;
+    clampEditorFocus();
+    updateEditorStage();
+  }else if(points.length>=2){
+    if(!pointerGesture || pointerGesture.type!=="pinch") startPointerGesture();
+    const a=points[0], b=points[1];
+    const distance=Math.max(1,Math.hypot(a.x-b.x,a.y-b.y));
+    editorDraft.zoom = pointerGesture.startZoom * (distance/pointerGesture.distance);
+    clampEditorFocus();
+    updateEditorStage();
+  }
+});
+
+function endPointer(e){
+  if(editorPointers.has(e.pointerId)) editorPointers.delete(e.pointerId);
+  try{ editStage.releasePointerCapture(e.pointerId); }catch(_){}
+  startPointerGesture();
+}
+editStage.addEventListener("pointerup", endPointer);
+editStage.addEventListener("pointercancel", endPointer);
+editStage.addEventListener("lostpointercapture", endPointer);
 
 editStage.addEventListener("wheel", e=>{
   if(editorPhotoIndex < 0) return;
@@ -970,51 +1017,6 @@ editStage.addEventListener("wheel", e=>{
   clampEditorFocus();
   updateEditorStage();
 },{passive:false});
-
-function beginGesture(){
-  const touches = [...activeTouches.values()];
-  if(touches.length === 1){
-    gestureStart = {type:"drag", x:touches[0].x, y:touches[0].y, startX:editorDraft.x, startY:editorDraft.y};
-  }else if(touches.length >= 2){
-    const [a,b] = touches;
-    gestureStart = {
-      type:"pinch",
-      midX:(a.x+b.x)/2,
-      midY:(a.y+b.y)/2,
-      dist:Math.hypot(a.x-b.x, a.y-b.y),
-      startZoom:editorDraft.zoom
-    };
-  }else{
-    gestureStart = null;
-  }
-}
-
-function updateGesture(){
-  const touches = [...activeTouches.values()];
-  if(!gestureStart || editorPhotoIndex < 0) return;
-  const photo = state.photos[editorPhotoIndex];
-  const oriented = getOrientedCanvas(photo);
-  const sw = editStage.clientWidth, sh = editStage.clientHeight;
-  const currentScale = Math.max(sw/oriented.width, sh/oriented.height) * editorDraft.zoom;
-  const iw = oriented.width * currentScale;
-  const ih = oriented.height * currentScale;
-
-  if(gestureStart.type === "drag" && touches.length === 1){
-    const t = touches[0];
-    const rangeX = Math.max(1, iw - sw);
-    const rangeY = Math.max(1, ih - sh);
-    editorDraft.x = gestureStart.startX - (t.x - gestureStart.x)/rangeX;
-    editorDraft.y = gestureStart.startY - (t.y - gestureStart.y)/rangeY;
-    clampEditorFocus();
-    updateEditorStage();
-  }else if(gestureStart.type === "pinch" && touches.length >= 2){
-    const [a,b] = touches;
-    const dist = Math.hypot(a.x-b.x, a.y-b.y);
-    editorDraft.zoom = gestureStart.startZoom * (dist / Math.max(1, gestureStart.dist));
-    clampEditorFocus();
-    updateEditorStage();
-  }
-}
 
 async function exportJpg(){
   if(!state.photos.length) return;
