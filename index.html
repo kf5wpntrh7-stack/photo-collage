@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>手機圖片拼接 v5</title>
+<title>手機圖片拼接 v5.1</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -219,6 +219,23 @@ main{padding-top:10px}
 .edit-stage.dragging{outline:3px solid #33a0ff}
 .edit-stage.pinching{outline:3px solid #6b7cff}
 
+
+.gesture-status{
+  margin:0 auto 9px;width:min(88vw,430px);padding:7px 9px;border-radius:9px;
+  text-align:center;background:#eef5fa;color:#476277;font-size:12px;font-weight:750
+}
+.zoom-buttons{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  width:min(88vw,430px);margin:10px auto 0
+}
+.zoom-buttons button{
+  border:0;border-radius:10px;padding:10px;background:var(--soft);
+  color:var(--text);font-weight:800
+}
+.edit-stage{cursor:grab}
+.edit-stage.drag-active{cursor:grabbing;outline:3px solid #33a0ff}
+.edit-stage.pinch-active{outline:3px solid #7b70ff}
+
 </style>
 </head>
 <body>
@@ -226,7 +243,7 @@ main{padding-top:10px}
   <div class="header-row">
     <div>
       <h1>🖼️ 手機圖片拼接</h1>
-      <div class="subtitle">v5・單頁操作＋單格拖曳縮放</div>
+      <div class="subtitle">v5.1・修正格子預覽與單格手勢</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -375,10 +392,15 @@ main{padding-top:10px}
   <div class="edit-sheet">
     <div class="edit-grab"></div>
     <div class="edit-title">調整格子畫面</div>
-    <div class="edit-note">你現在只會調整這一格。單指拖曳移動，雙指縮放。</div>
+    <div class="edit-note">你現在只會調整這一格。直接拖動照片；雙指可縮放。</div>
+    <div id="gestureStatus" class="gesture-status">請在照片上拖動</div>
     <div id="editStage" class="edit-stage">
       <img id="editImage" alt="">
       <div class="edit-cross"></div>
+    </div>
+    <div class="zoom-buttons">
+      <button type="button" onclick="editorZoomBy(-0.15)">－ 縮小</button>
+      <button type="button" onclick="editorZoomBy(0.15)">＋ 放大</button>
     </div>
     <div class="edit-actions">
       <button class="soft" onclick="resetEditor()">重設</button>
@@ -411,8 +433,9 @@ let previewTimer = null;
 let previewHitboxes = [];
 
 let editorPhotoIndex = -1;
-let editorDraft = {x:0.5,y:0.5,zoom:1};
+let editorDraft = {x:0.5,y:0.5,zoom:1,panX:0,panY:0};
 let editorAspect = 1;
+let editorBase = null;
 
 fileInput.addEventListener("change", async (event)=>{
   const files = Array.from(event.target.files || []);
@@ -443,7 +466,7 @@ fileInput.addEventListener("change", async (event)=>{
   }
   fileInput.value = "";
   renderPhotos();
-  schedulePreview();
+  await renderPreview();
 });
 
 function loadImage(file){
@@ -470,6 +493,7 @@ function setMode(mode, button){
   let candidate = activePanel.querySelector(`.layout[data-layout="${state.layout}"]`);
   if(!candidate) candidate = activePanel.querySelector(".layout");
   setLayout(candidate.dataset.layout, candidate);
+  if(state.photos.length) renderPreview();
 }
 
 function setLayout(layout, button){
@@ -479,7 +503,8 @@ function setLayout(layout, button){
   if(button) button.classList.add("active");
   document.getElementById("ratioWrap").classList.toggle("show", !!capacities[layout]);
   updateCapacityNote();
-  schedulePreview();
+  if(state.photos.length) renderPreview();
+  else schedulePreview();
 }
 
 function setFit(fit){
@@ -845,6 +870,7 @@ function buildGridOverlay(){
   });
 }
 
+
 function openEditor(index, hitbox){
   const photo = state.photos[index];
   if(!photo) return;
@@ -852,170 +878,217 @@ function openEditor(index, hitbox){
   editorDraft = {
     x: Number.isFinite(photo.focusX) ? photo.focusX : 0.5,
     y: Number.isFinite(photo.focusY) ? photo.focusY : 0.5,
-    zoom: Number.isFinite(photo.zoom) ? Math.max(1.06, photo.zoom) : 1.06
+    zoom: Number.isFinite(photo.zoom) ? Math.max(1.12, photo.zoom) : 1.12,
+    panX: 0,
+    panY: 0
   };
-  editorAspect = hitbox && hitbox.w > 0 && hitbox.h > 0 ? (hitbox.w / hitbox.h) : 1;
+  editorAspect = hitbox && hitbox.w > 0 && hitbox.h > 0 ? hitbox.w / hitbox.h : 1;
   const stage = document.getElementById("editStage");
   stage.style.aspectRatio = `${editorAspect}`;
-  const img = document.getElementById("editImage");
   const oriented = getOrientedCanvas(photo);
-  img.src = oriented.toDataURL("image/jpeg", 0.92);
+  document.getElementById("editImage").src = oriented.toDataURL("image/jpeg",0.92);
   document.getElementById("editModal").classList.add("show");
   document.body.style.overflow = "hidden";
-  requestAnimationFrame(updateEditorStage);
+  document.getElementById("gestureStatus").textContent = "請在照片上拖動";
+  requestAnimationFrame(()=>{
+    initializeEditorPosition();
+    updateEditorStage();
+  });
+}
+
+function initializeEditorPosition(){
+  if(editorPhotoIndex < 0) return;
+  const photo = state.photos[editorPhotoIndex];
+  const oriented = getOrientedCanvas(photo);
+  const stage = document.getElementById("editStage");
+  const sw = stage.clientWidth;
+  const sh = stage.clientHeight;
+  const baseScale = Math.max(sw/oriented.width, sh/oriented.height);
+  editorBase = {sw,sh,ow:oriented.width,oh:oriented.height,baseScale};
+  const iw = oriented.width * baseScale * editorDraft.zoom;
+  const ih = oriented.height * baseScale * editorDraft.zoom;
+  const rangeX = Math.max(0,(iw-sw)/2);
+  const rangeY = Math.max(0,(ih-sh)/2);
+  editorDraft.panX = (0.5-editorDraft.x) * rangeX * 2;
+  editorDraft.panY = (0.5-editorDraft.y) * rangeY * 2;
+  clampEditorPan();
+}
+
+function currentEditorMetrics(){
+  if(!editorBase) initializeEditorPosition();
+  if(!editorBase) return null;
+  const iw = editorBase.ow * editorBase.baseScale * editorDraft.zoom;
+  const ih = editorBase.oh * editorBase.baseScale * editorDraft.zoom;
+  return {
+    sw:editorBase.sw, sh:editorBase.sh, iw, ih,
+    maxX:Math.max(0,(iw-editorBase.sw)/2),
+    maxY:Math.max(0,(ih-editorBase.sh)/2)
+  };
+}
+
+function clampEditorPan(){
+  const m = currentEditorMetrics();
+  if(!m) return;
+  editorDraft.zoom = Math.min(3.5,Math.max(1,editorDraft.zoom));
+  editorDraft.panX = Math.min(m.maxX,Math.max(-m.maxX,editorDraft.panX));
+  editorDraft.panY = Math.min(m.maxY,Math.max(-m.maxY,editorDraft.panY));
+}
+
+function updateEditorStage(){
+  if(editorPhotoIndex < 0) return;
+  const img = document.getElementById("editImage");
+  const m = currentEditorMetrics();
+  if(!m) return;
+  clampEditorPan();
+  img.style.width = m.iw+"px";
+  img.style.height = m.ih+"px";
+  img.style.left = (m.sw-m.iw)/2 + editorDraft.panX + "px";
+  img.style.top = (m.sh-m.ih)/2 + editorDraft.panY + "px";
+}
+
+function editorZoomBy(delta){
+  const oldZoom = editorDraft.zoom;
+  editorDraft.zoom = Math.min(3.5,Math.max(1,editorDraft.zoom+delta));
+  const ratio = editorDraft.zoom / oldZoom;
+  editorDraft.panX *= ratio;
+  editorDraft.panY *= ratio;
+  clampEditorPan();
+  updateEditorStage();
+  document.getElementById("gestureStatus").textContent = `縮放 ${Math.round(editorDraft.zoom*100)}%`;
+}
+
+function resetEditor(){
+  editorDraft.zoom = 1.12;
+  editorDraft.panX = 0;
+  editorDraft.panY = 0;
+  updateEditorStage();
+  document.getElementById("gestureStatus").textContent = "已恢復置中";
+}
+
+function saveEditor(){
+  const photo = state.photos[editorPhotoIndex];
+  const m = currentEditorMetrics();
+  if(photo && m){
+    photo.zoom = editorDraft.zoom;
+    photo.focusX = m.maxX > 0 ? Math.min(1,Math.max(0,0.5-editorDraft.panX/(m.maxX*2))) : 0.5;
+    photo.focusY = m.maxY > 0 ? Math.min(1,Math.max(0,0.5-editorDraft.panY/(m.maxY*2))) : 0.5;
+  }
+  closeEditor();
+  renderPreview();
 }
 
 function closeEditor(){
   document.getElementById("editModal").classList.remove("show");
   document.body.style.overflow = "";
   editorPhotoIndex = -1;
-  editorPointers.clear();
-  pointerGesture = null;
-  editStage.classList.remove("dragging","pinching");
+  editorBase = null;
+  touchGesture = null;
+  editStage.classList.remove("drag-active","pinch-active");
   document.querySelectorAll(".grid-hit").forEach(el=>el.classList.remove("selected"));
 }
 function closeEditorByBackdrop(event){
-  if(event.target.id === "editModal") closeEditor();
+  if(event.target.id==="editModal") closeEditor();
 }
-function resetEditor(){
-  editorDraft = {x:0.5,y:0.5,zoom:1};
-  updateEditorStage();
-}
-function saveEditor(){
-  const photo = state.photos[editorPhotoIndex];
-  if(photo){
-    photo.focusX = editorDraft.x;
-    photo.focusY = editorDraft.y;
-    photo.zoom = editorDraft.zoom;
-  }
-  closeEditor();
-  schedulePreview();
-}
-
-function updateEditorStage(){
-  if(editorPhotoIndex < 0) return;
-  const photo = state.photos[editorPhotoIndex];
-  const stage = document.getElementById("editStage");
-  const img = document.getElementById("editImage");
-  const oriented = getOrientedCanvas(photo);
-  const sw = stage.clientWidth, sh = stage.clientHeight;
-  const scale = Math.max(sw/oriented.width, sh/oriented.height) * editorDraft.zoom;
-  const iw = oriented.width * scale;
-  const ih = oriented.height * scale;
-  const minLeft = sw - iw;
-  const minTop = sh - ih;
-  const left = (sw-iw)/2 + (0.5-editorDraft.x)*(iw-sw);
-  const top = (sh-ih)/2 + (0.5-editorDraft.y)*(ih-sh);
-  img.style.width = iw + "px";
-  img.style.height = ih + "px";
-  img.style.left = Math.min(0, Math.max(minLeft, left)) + "px";
-  img.style.top = Math.min(0, Math.max(minTop, top)) + "px";
-}
-
-function clampEditorFocus(){
-  editorDraft.x = Math.min(1, Math.max(0, editorDraft.x));
-  editorDraft.y = Math.min(1, Math.max(0, editorDraft.y));
-  editorDraft.zoom = Math.min(3, Math.max(1, editorDraft.zoom));
-}
-
 
 const editStage = document.getElementById("editStage");
-const editorPointers = new Map();
-let pointerGesture = null;
+let touchGesture = null;
+let mouseGesture = null;
 
-function editorMetrics(){
-  const photo = state.photos[editorPhotoIndex];
-  if(!photo) return null;
-  const oriented = getOrientedCanvas(photo);
-  const sw = editStage.clientWidth;
-  const sh = editStage.clientHeight;
-  const scale = Math.max(sw/oriented.width, sh/oriented.height) * editorDraft.zoom;
-  const iw = oriented.width * scale;
-  const ih = oriented.height * scale;
-  return {sw,sh,iw,ih,rangeX:Math.max(1,iw-sw),rangeY:Math.max(1,ih-sh)};
-}
-
-function startPointerGesture(){
-  const points = [...editorPointers.values()];
-  if(points.length === 1){
-    const p = points[0];
-    pointerGesture = {
-      type:"drag",
-      x:p.x, y:p.y,
-      startX:editorDraft.x,
-      startY:editorDraft.y
+editStage.addEventListener("touchstart", e=>{
+  if(editorPhotoIndex<0) return;
+  e.preventDefault();
+  if(e.touches.length===1){
+    const t=e.touches[0];
+    touchGesture={
+      type:"drag",x:t.clientX,y:t.clientY,
+      panX:editorDraft.panX,panY:editorDraft.panY
     };
-    editStage.classList.add("dragging");
-    editStage.classList.remove("pinching");
-  }else if(points.length >= 2){
-    const a = points[0], b = points[1];
-    pointerGesture = {
+    editStage.classList.add("drag-active");
+    editStage.classList.remove("pinch-active");
+    document.getElementById("gestureStatus").textContent="拖曳中";
+  }else if(e.touches.length>=2){
+    const a=e.touches[0],b=e.touches[1];
+    touchGesture={
       type:"pinch",
-      distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),
-      startZoom:editorDraft.zoom
+      distance:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),
+      zoom:editorDraft.zoom,
+      panX:editorDraft.panX,panY:editorDraft.panY
     };
-    editStage.classList.add("pinching");
-    editStage.classList.remove("dragging");
-  }else{
-    pointerGesture = null;
-    editStage.classList.remove("dragging","pinching");
+    editStage.classList.add("pinch-active");
+    editStage.classList.remove("drag-active");
+    document.getElementById("gestureStatus").textContent="縮放中";
   }
-}
+},{passive:false});
 
-editStage.addEventListener("pointerdown", e=>{
-  if(editorPhotoIndex < 0) return;
+editStage.addEventListener("touchmove", e=>{
+  if(editorPhotoIndex<0 || !touchGesture) return;
   e.preventDefault();
-  editStage.setPointerCapture(e.pointerId);
-  editorPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  startPointerGesture();
-});
-
-editStage.addEventListener("pointermove", e=>{
-  if(!editorPointers.has(e.pointerId) || editorPhotoIndex < 0) return;
-  e.preventDefault();
-  editorPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  const points = [...editorPointers.values()];
-  if(!pointerGesture) startPointerGesture();
-
-  if(pointerGesture && pointerGesture.type==="drag" && points.length===1){
-    const p = points[0];
-    let metrics = editorMetrics();
-    if(!metrics) return;
-
-    // 照片幾乎沒有可移動空間時，自動稍微放大。
-    if(metrics.rangeX <= 2 && metrics.rangeY <= 2 && editorDraft.zoom < 1.12){
-      editorDraft.zoom = 1.12;
-      metrics = editorMetrics();
+  if(touchGesture.type==="drag" && e.touches.length===1){
+    const t=e.touches[0];
+    editorDraft.panX=touchGesture.panX+(t.clientX-touchGesture.x);
+    editorDraft.panY=touchGesture.panY+(t.clientY-touchGesture.y);
+    clampEditorPan();
+    updateEditorStage();
+  }else if(e.touches.length>=2){
+    if(touchGesture.type!=="pinch"){
+      const a=e.touches[0],b=e.touches[1];
+      touchGesture={
+        type:"pinch",
+        distance:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),
+        zoom:editorDraft.zoom,
+        panX:editorDraft.panX,panY:editorDraft.panY
+      };
     }
-    editorDraft.x = pointerGesture.startX - (p.x-pointerGesture.x)/metrics.rangeX;
-    editorDraft.y = pointerGesture.startY - (p.y-pointerGesture.y)/metrics.rangeY;
-    clampEditorFocus();
+    const a=e.touches[0],b=e.touches[1];
+    const distance=Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY));
+    const oldZoom=editorDraft.zoom;
+    editorDraft.zoom=Math.min(3.5,Math.max(1,touchGesture.zoom*(distance/touchGesture.distance)));
+    const ratio=editorDraft.zoom/Math.max(.01,oldZoom);
+    editorDraft.panX*=ratio;
+    editorDraft.panY*=ratio;
+    clampEditorPan();
     updateEditorStage();
-  }else if(points.length>=2){
-    if(!pointerGesture || pointerGesture.type!=="pinch") startPointerGesture();
-    const a=points[0], b=points[1];
-    const distance=Math.max(1,Math.hypot(a.x-b.x,a.y-b.y));
-    editorDraft.zoom = pointerGesture.startZoom * (distance/pointerGesture.distance);
-    clampEditorFocus();
-    updateEditorStage();
+    document.getElementById("gestureStatus").textContent=`縮放 ${Math.round(editorDraft.zoom*100)}%`;
   }
-});
+},{passive:false});
 
-function endPointer(e){
-  if(editorPointers.has(e.pointerId)) editorPointers.delete(e.pointerId);
-  try{ editStage.releasePointerCapture(e.pointerId); }catch(_){}
-  startPointerGesture();
-}
-editStage.addEventListener("pointerup", endPointer);
-editStage.addEventListener("pointercancel", endPointer);
-editStage.addEventListener("lostpointercapture", endPointer);
-
-editStage.addEventListener("wheel", e=>{
-  if(editorPhotoIndex < 0) return;
+editStage.addEventListener("touchend",e=>{
   e.preventDefault();
-  editorDraft.zoom += e.deltaY < 0 ? 0.06 : -0.06;
-  clampEditorFocus();
+  editStage.classList.remove("drag-active","pinch-active");
+  if(e.touches.length===1){
+    const t=e.touches[0];
+    touchGesture={type:"drag",x:t.clientX,y:t.clientY,panX:editorDraft.panX,panY:editorDraft.panY};
+  }else{
+    touchGesture=null;
+    document.getElementById("gestureStatus").textContent="可繼續拖動或雙指縮放";
+  }
+},{passive:false});
+editStage.addEventListener("touchcancel",()=>{
+  touchGesture=null;
+  editStage.classList.remove("drag-active","pinch-active");
+},{passive:false});
+
+editStage.addEventListener("mousedown",e=>{
+  if(editorPhotoIndex<0) return;
+  e.preventDefault();
+  mouseGesture={x:e.clientX,y:e.clientY,panX:editorDraft.panX,panY:editorDraft.panY};
+  editStage.classList.add("drag-active");
+});
+window.addEventListener("mousemove",e=>{
+  if(!mouseGesture || editorPhotoIndex<0) return;
+  editorDraft.panX=mouseGesture.panX+(e.clientX-mouseGesture.x);
+  editorDraft.panY=mouseGesture.panY+(e.clientY-mouseGesture.y);
+  clampEditorPan();
   updateEditorStage();
+});
+window.addEventListener("mouseup",()=>{
+  mouseGesture=null;
+  editStage.classList.remove("drag-active");
+});
+editStage.addEventListener("wheel",e=>{
+  if(editorPhotoIndex<0) return;
+  e.preventDefault();
+  editorZoomBy(e.deltaY<0 ? .08 : -.08);
 },{passive:false});
 
 async function exportJpg(){
@@ -1068,6 +1141,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const modeButton = document.querySelector(`.mode-tab[data-mode="${state.mode}"]`) || document.querySelector('.mode-tab[data-mode="join"]');
   setMode(modeButton.dataset.mode, modeButton);
   renderPhotos();
+  if(state.photos.length) renderPreview();
 });
 
 document.addEventListener("selectstart", e=>{
