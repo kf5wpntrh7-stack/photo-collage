@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>手機圖片拼接</title>
+<title>手機圖片拼接 v2.1</title>
 <style>
 :root{
   --bg:#eef1f4;
@@ -121,7 +121,7 @@ input[type=range]{width:100%;accent-color:var(--navy)}
 .photo-list{padding:4px 10px 10px}
 .photo{
   display:grid;
-  grid-template-columns:56px 1fr auto;
+  grid-template-columns:56px 1fr 110px;
   gap:9px;
   align-items:center;
   padding:8px;
@@ -134,12 +134,49 @@ input[type=range]{width:100%;accent-color:var(--navy)}
 .photo-info{min-width:0}
 .photo-name{font-size:13px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .photo-size{font-size:11px;color:var(--muted);margin-top:4px}
-.photo-actions{display:grid;grid-template-columns:repeat(2,32px);gap:4px}
+.photo-actions{display:grid;grid-template-columns:repeat(3,34px);gap:4px}
 .photo-actions button{
-  width:32px;height:32px;border:0;border-radius:9px;background:var(--soft);
-  color:#485a68;font-weight:800
+  width:34px;height:34px;border:0;border-radius:9px;background:var(--soft);
+  color:#485a68;font-weight:800;font-size:14px
 }
 .photo-actions .delete{color:var(--danger)}
+.photo-actions .focus-btn{grid-column:1/3;width:72px}
+.photo-actions .delete{grid-column:3;width:34px}
+.photo-tip{font-size:11px;color:var(--muted);margin-top:3px}
+.focus-modal{
+  position:fixed;inset:0;z-index:70;background:rgba(16,25,32,.55);
+  display:none;align-items:flex-end
+}
+.focus-modal.show{display:flex}
+.focus-sheet{
+  width:100%;background:#fff;border-radius:20px 20px 0 0;
+  padding:10px 14px calc(16px + env(safe-area-inset-bottom))
+}
+.focus-grab{width:42px;height:4px;background:#d4dade;border-radius:999px;margin:2px auto 10px}
+.focus-title{font-size:17px;font-weight:800;margin-bottom:4px}
+.focus-note{font-size:12px;color:var(--muted);margin-bottom:10px}
+.focus-stage{
+  width:min(88vw,420px);aspect-ratio:1/1;margin:auto;
+  border-radius:14px;overflow:hidden;background:#e5e9ec;
+  position:relative;touch-action:none;border:1px solid var(--line)
+}
+.focus-stage img{
+  position:absolute;max-width:none;max-height:none;user-select:none;
+  -webkit-user-drag:none;pointer-events:none
+}
+.focus-cross:before,.focus-cross:after{
+  content:"";position:absolute;background:rgba(255,255,255,.55);pointer-events:none
+}
+.focus-cross:before{left:50%;top:0;bottom:0;width:1px}
+.focus-cross:after{top:50%;left:0;right:0;height:1px}
+.focus-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.focus-actions button{border:0;border-radius:11px;padding:11px;font-weight:800}
+.focus-cancel{background:var(--soft);color:var(--text)}
+.focus-ok{background:var(--navy);color:#fff}
+@media(min-width:700px){
+  .focus-modal{align-items:center;justify-content:center;padding:20px}
+  .focus-sheet{max-width:500px;border-radius:20px}
+}
 .capacity{
   display:none;
   margin:8px 12px 12px;
@@ -189,6 +226,9 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
 @media(min-width:700px){
   .layouts{grid-template-columns:repeat(5,1fr)}
 }
+
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px 0}.mode-tab{border:0;border-radius:10px;padding:10px;background:#e9eef2;color:#65737e;font-weight:800}.mode-tab.active{background:var(--navy);color:#fff}.layout-panel{display:none}.layout-panel.active{display:block}.icon-v3{grid-template-rows:repeat(3,1fr)}.icon-h3{grid-template-columns:repeat(3,1fr)}.icon-v4{grid-template-rows:repeat(4,1fr)}.icon-h4{grid-template-columns:repeat(4,1fr)}.icon-6h{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr)}.custom-grid{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}.custom-grid .big-top{grid-column:1/-1}.custom-grid .big-bottom{grid-column:1/-1;grid-row:2}.custom-grid.left-big .big-left{grid-row:1/-1}.custom-grid.right-big .big-right{grid-column:2;grid-row:1/-1}
+
 </style>
 </head>
 <body>
@@ -196,14 +236,14 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
   <div class="header-row">
     <div>
       <h1>🖼️ 手機圖片拼接</h1>
-      <div class="subtitle">上下、左右與 IG 格狀拼接</div>
+      <div class="subtitle">基礎拼接＋進階格子取景</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
 </header>
 
 <main>
-  <section class="card">
+  <section class="card" id="topUploadCard">
     <div class="upload-wrap">
       <label class="upload-box" for="fileInput">
         <div>
@@ -217,71 +257,43 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
   </section>
 
   <section class="card">
-    <div class="card-title">選擇拼接方式</div>
-    <div class="layouts">
-      <button class="layout active" data-layout="vertical" onclick="setLayout('vertical',this)">
-        <div class="layout-icon icon-v"><span></span><span></span></div>
-        <div class="layout-label">上下拼接</div>
-      </button>
-      <button class="layout" data-layout="horizontal" onclick="setLayout('horizontal',this)">
-        <div class="layout-icon icon-h"><span></span><span></span></div>
-        <div class="layout-label">左右拼接</div>
-      </button>
-      <button class="layout" data-layout="grid4" onclick="setLayout('grid4',this)">
-        <div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div>
-        <div class="layout-label">四格</div>
-      </button>
-      <button class="layout" data-layout="grid6" onclick="setLayout('grid6',this)">
-        <div class="layout-icon icon-6"><span></span><span></span><span></span><span></span><span></span><span></span></div>
-        <div class="layout-label">六格</div>
-      </button>
-      <button class="layout" data-layout="grid9" onclick="setLayout('grid9',this)">
-        <div class="layout-icon icon-9"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-        <div class="layout-label">九格</div>
-      </button>
+    <div class="card-title">選擇版型</div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="join" onclick="setMode('join',this)">拼接</button>
+      <button class="mode-tab" data-mode="grid" onclick="setMode('grid',this)">格子</button>
     </div>
-
+    <div id="joinLayouts" class="layout-panel active"><div class="layouts">
+      <button class="layout active" data-layout="vertical" onclick="setLayout('vertical',this)"><div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">上下拼接</div></button>
+      <button class="layout" data-layout="horizontal" onclick="setLayout('horizontal',this)"><div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">左右拼接</div></button>
+      <button class="layout" data-layout="vertical3" onclick="setLayout('vertical3',this)"><div class="layout-icon icon-v3"><span></span><span></span><span></span></div><div class="layout-label">3 張直排</div></button>
+      <button class="layout" data-layout="horizontal3" onclick="setLayout('horizontal3',this)"><div class="layout-icon icon-h3"><span></span><span></span><span></span></div><div class="layout-label">3 張橫排</div></button>
+      <button class="layout" data-layout="vertical4" onclick="setLayout('vertical4',this)"><div class="layout-icon icon-v4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 張直排</div></button>
+      <button class="layout" data-layout="horizontal4" onclick="setLayout('horizontal4',this)"><div class="layout-icon icon-h4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 張橫排</div></button>
+    </div></div>
+    <div id="gridLayouts" class="layout-panel"><div class="layouts grid-layouts">
+      <button class="layout" data-layout="grid2h" onclick="setLayout('grid2h',this)"><div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">2 格左右</div></button>
+      <button class="layout" data-layout="grid2v" onclick="setLayout('grid2v',this)"><div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">2 格上下</div></button>
+      <button class="layout" data-layout="grid3top" onclick="setLayout('grid3top',this)"><div class="layout-icon custom-grid"><span class="big-top"></span><span></span><span></span></div><div class="layout-label">上 1 下 2</div></button>
+      <button class="layout" data-layout="grid3left" onclick="setLayout('grid3left',this)"><div class="layout-icon custom-grid left-big"><span class="big-left"></span><span></span><span></span></div><div class="layout-label">左 1 右 2</div></button>
+      <button class="layout" data-layout="grid3bottom" onclick="setLayout('grid3bottom',this)"><div class="layout-icon custom-grid"><span></span><span></span><span class="big-bottom"></span></div><div class="layout-label">上 2 下 1</div></button>
+      <button class="layout" data-layout="grid3right" onclick="setLayout('grid3right',this)"><div class="layout-icon custom-grid right-big"><span></span><span></span><span class="big-right"></span></div><div class="layout-label">左 2 右 1</div></button>
+      <button class="layout" data-layout="grid4" onclick="setLayout('grid4',this)"><div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 格</div></button>
+      <button class="layout" data-layout="grid6v" onclick="setLayout('grid6v',this)"><div class="layout-icon icon-6"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">6 格 2×3</div></button>
+      <button class="layout" data-layout="grid6h" onclick="setLayout('grid6h',this)"><div class="layout-icon icon-6h"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">6 格 3×2</div></button>
+      <button class="layout" data-layout="grid9" onclick="setLayout('grid9',this)"><div class="layout-icon icon-9"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">9 格</div></button>
+    </div></div>
     <div class="controls">
-      <div class="control">
-        <div class="control-head">
-          <label for="gapRange">照片間距</label>
-          <span class="control-value"><span id="gapValue">6</span> px</span>
-        </div>
-        <input id="gapRange" type="range" min="0" max="24" value="6">
-      </div>
-
-      <div class="control">
-        <div class="control-head">
-          <label for="roundRange">照片圓角</label>
-          <span class="control-value"><span id="roundValue">0</span> px</span>
-        </div>
-        <input id="roundRange" type="range" min="0" max="30" value="0">
-      </div>
-
-      <div class="control">
-        <div class="control-head"><label>格子內照片</label></div>
-        <div class="segment">
-          <button id="fitCover" class="active" onclick="setFit('cover')">填滿裁切</button>
-          <button id="fitContain" onclick="setFit('contain')">完整顯示</button>
-        </div>
-      </div>
-
-      <div class="control ratio-wrap" id="ratioWrap">
-        <div class="control-head"><label>輸出比例</label></div>
-        <div class="segment" style="grid-template-columns:repeat(3,1fr)">
-          <button class="ratio-btn active" data-ratio="1:1" onclick="setRatio('1:1',this)">1:1</button>
-          <button class="ratio-btn" data-ratio="4:5" onclick="setRatio('4:5',this)">4:5</button>
-          <button class="ratio-btn" data-ratio="9:16" onclick="setRatio('9:16',this)">9:16</button>
-        </div>
-      </div>
+      <div class="control"><div class="control-head"><label for="gapRange">照片間距</label><span class="control-value"><span id="gapValue">6</span> px</span></div><input id="gapRange" type="range" min="0" max="24" value="6"></div>
+      <div class="control"><div class="control-head"><label for="roundRange">照片圓角</label><span class="control-value"><span id="roundValue">0</span> px</span></div><input id="roundRange" type="range" min="0" max="30" value="0"></div>
+      <div class="control"><div class="control-head"><label>格子內照片</label></div><div class="segment"><button id="fitCover" class="active" onclick="setFit('cover')">填滿裁切</button><button id="fitContain" onclick="setFit('contain')">完整顯示</button></div></div>
+      <div class="control ratio-wrap" id="ratioWrap"><div class="control-head"><label>輸出比例</label></div><div class="segment" style="grid-template-columns:repeat(3,1fr)"><button class="ratio-btn active" data-ratio="1:1" onclick="setRatio('1:1',this)">1:1</button><button class="ratio-btn" data-ratio="4:5" onclick="setRatio('4:5',this)">4:5</button><button class="ratio-btn" data-ratio="9:16" onclick="setRatio('9:16',this)">9:16</button></div></div>
     </div>
-
     <div id="capacityNote" class="capacity"></div>
   </section>
 
   <section class="card" id="photoCard">
     <div class="card-title">照片順序 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
-    <div class="card-note">使用上下箭頭調整順序；格狀版型會依序由左到右、由上到下排列。</div>
+    <div class="card-note">可調整順序與左右旋轉；「取景」只影響格子模式的填滿裁切，拼接模式仍保留原比例。</div>
     <div id="photoList" class="photo-list"></div>
   </section>
 
@@ -303,18 +315,36 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
   </div>
 </div>
 
+
+<div id="focusModal" class="focus-modal" onclick="closeFocusByBackdrop(event)">
+  <div class="focus-sheet">
+    <div class="focus-grab"></div>
+    <div class="focus-title">調整格子取景</div>
+    <div class="focus-note">用手指拖動照片，把重要人物或物件移到格子中央。</div>
+    <div id="focusStage" class="focus-stage">
+      <img id="focusImage" alt="">
+      <div class="focus-cross"></div>
+    </div>
+    <div class="focus-actions">
+      <button class="focus-cancel" onclick="closeFocus()">取消</button>
+      <button class="focus-ok" onclick="saveFocus()">套用位置</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
 const state = {
   photos: [],
+  mode: localStorage.getItem("collage_mode") || "join",
   layout: localStorage.getItem("collage_layout") || "vertical",
   gap: Number(localStorage.getItem("collage_gap") || 6),
   radius: Number(localStorage.getItem("collage_radius") || 0),
   fit: localStorage.getItem("collage_fit") || "cover",
   ratio: localStorage.getItem("collage_ratio") || "1:1"
 };
-const capacities = {grid4:4, grid6:6, grid9:9};
+const capacities = {grid2h:2,grid2v:2,grid3top:3,grid3left:3,grid3bottom:3,grid3right:3,grid4:4,grid6v:6,grid6h:6,grid9:9};
 let previewTimer = null;
 
 const fileInput = document.getElementById("fileInput");
@@ -337,7 +367,10 @@ fileInput.addEventListener("change", async (event) => {
         img: img.image,
         name: file.name,
         width: img.image.naturalWidth,
-        height: img.image.naturalHeight
+        height: img.image.naturalHeight,
+        rotation: 0,
+        focusX: 0.5,
+        focusY: 0.5
       });
     }catch(e){
       showToast("有照片無法讀取");
@@ -358,6 +391,9 @@ function loadImage(file){
   });
 }
 
+function setMode(mode, button){
+  state.mode=mode;localStorage.setItem("collage_mode",mode);document.querySelectorAll(".mode-tab").forEach(b=>b.classList.remove("active"));if(button)button.classList.add("active");document.getElementById("joinLayouts").classList.toggle("active",mode==="join");document.getElementById("gridLayouts").classList.toggle("active",mode==="grid");const panel=mode==="join"?document.getElementById("joinLayouts"):document.getElementById("gridLayouts");let candidate=panel.querySelector(`.layout[data-layout="${state.layout}"]`);if(!candidate)candidate=panel.querySelector(".layout");setLayout(candidate.dataset.layout,candidate);
+}
 function setLayout(layout, button){
   state.layout = layout;
   localStorage.setItem("collage_layout", layout);
@@ -411,13 +447,17 @@ function renderPhotos(){
         <div class="photo-size">${photo.width} × ${photo.height}</div>
       </div>
       <div class="photo-actions">
-        <button onclick="movePhoto(${index},-1)" ${index===0?"disabled":""}>↑</button>
-        <button onclick="movePhoto(${index},1)" ${index===state.photos.length-1?"disabled":""}>↓</button>
-        <button class="delete" style="grid-column:1/-1;width:68px" onclick="removePhoto(${index})">刪除</button>
+        <button onclick="rotatePhoto(${index},-90)" title="向左旋轉">↶</button>
+        <button onclick="rotatePhoto(${index},90)" title="向右旋轉">↷</button>
+        <button onclick="movePhoto(${index},-1)" ${index===0?"disabled":""} title="上移">↑</button>
+        <button onclick="movePhoto(${index},1)" ${index===state.photos.length-1?"disabled":""} title="下移">↓</button>
+        <button class="focus-btn" onclick="openFocus(${index})" title="調整格子取景">取景</button>
+        <button class="delete" onclick="removePhoto(${index})" title="刪除">×</button>
       </div>`;
     root.appendChild(row);
   });
   document.getElementById("exportBtn").disabled = state.photos.length===0;
+  document.getElementById("topUploadCard").classList.toggle("hidden", state.photos.length>0);
   updateCapacityNote();
 }
 
@@ -428,6 +468,95 @@ function movePhoto(index, direction){
   renderPhotos();
   schedulePreview();
 }
+
+function rotatePhoto(index, delta){
+  const photo = state.photos[index];
+  if(!photo) return;
+  photo.rotation = ((photo.rotation || 0) + delta + 360) % 360;
+  const tmp = photo.width;
+  if(Math.abs(delta) % 180 === 90){
+    photo.width = photo.height;
+    photo.height = tmp;
+  }
+  renderPhotos();
+  schedulePreview();
+}
+
+let focusEditingIndex = -1;
+let focusDraftX = 0.5;
+let focusDraftY = 0.5;
+let focusDragStart = null;
+
+function openFocus(index){
+  const photo = state.photos[index];
+  if(!photo) return;
+  focusEditingIndex = index;
+  focusDraftX = Number.isFinite(photo.focusX) ? photo.focusX : 0.5;
+  focusDraftY = Number.isFinite(photo.focusY) ? photo.focusY : 0.5;
+  const oriented = getOrientedCanvas(photo);
+  const img = document.getElementById("focusImage");
+  img.src = oriented.toDataURL("image/jpeg",0.88);
+  document.getElementById("focusModal").classList.add("show");
+  document.body.style.overflow = "hidden";
+  requestAnimationFrame(updateFocusStage);
+}
+
+function closeFocus(){
+  document.getElementById("focusModal").classList.remove("show");
+  document.body.style.overflow = "";
+  focusEditingIndex = -1;
+}
+function closeFocusByBackdrop(event){
+  if(event.target.id === "focusModal") closeFocus();
+}
+function saveFocus(){
+  const photo = state.photos[focusEditingIndex];
+  if(photo){
+    photo.focusX = focusDraftX;
+    photo.focusY = focusDraftY;
+  }
+  closeFocus();
+  schedulePreview();
+}
+
+function updateFocusStage(){
+  if(focusEditingIndex < 0) return;
+  const photo = state.photos[focusEditingIndex];
+  const stage = document.getElementById("focusStage");
+  const img = document.getElementById("focusImage");
+  const oriented = getOrientedCanvas(photo);
+  const sw = stage.clientWidth, sh = stage.clientHeight;
+  const scale = Math.max(sw/oriented.width, sh/oriented.height);
+  const iw = oriented.width*scale, ih = oriented.height*scale;
+  const minX = sw-iw, minY = sh-ih;
+  const left = (sw-iw)/2 + (0.5-focusDraftX)*(iw-sw);
+  const top = (sh-ih)/2 + (0.5-focusDraftY)*(ih-sh);
+  img.style.width = iw+"px";
+  img.style.height = ih+"px";
+  img.style.left = Math.min(0,Math.max(minX,left))+"px";
+  img.style.top = Math.min(0,Math.max(minY,top))+"px";
+}
+const focusStage = document.getElementById("focusStage");
+focusStage.addEventListener("pointerdown", e=>{
+  if(focusEditingIndex < 0) return;
+  focusStage.setPointerCapture(e.pointerId);
+  focusDragStart = {x:e.clientX,y:e.clientY,fx:focusDraftX,fy:focusDraftY};
+});
+focusStage.addEventListener("pointermove", e=>{
+  if(!focusDragStart || focusEditingIndex < 0) return;
+  const photo = state.photos[focusEditingIndex];
+  const oriented = getOrientedCanvas(photo);
+  const sw = focusStage.clientWidth, sh = focusStage.clientHeight;
+  const scale = Math.max(sw/oriented.width, sh/oriented.height);
+  const iw = oriented.width*scale, ih = oriented.height*scale;
+  const rangeX = Math.max(1,iw-sw), rangeY = Math.max(1,ih-sh);
+  focusDraftX = Math.min(1,Math.max(0,focusDragStart.fx-(e.clientX-focusDragStart.x)/rangeX));
+  focusDraftY = Math.min(1,Math.max(0,focusDragStart.fy-(e.clientY-focusDragStart.y)/rangeY));
+  updateFocusStage();
+});
+focusStage.addEventListener("pointerup",()=>focusDragStart=null);
+focusStage.addEventListener("pointercancel",()=>focusDragStart=null);
+
 function removePhoto(index){
   const removed = state.photos.splice(index,1)[0];
   if(removed) URL.revokeObjectURL(removed.url);
@@ -444,7 +573,8 @@ function resetAll(){
 
 function updateCapacityNote(){
   const note = document.getElementById("capacityNote");
-  const cap = capacities[state.layout];
+  const joinCaps={vertical3:3,horizontal3:3,vertical4:4,horizontal4:4};
+  const cap=capacities[state.layout]||joinCaps[state.layout];
   if(cap && state.photos.length > cap){
     note.textContent = `此版型最多輸出 ${cap} 張，目前有 ${state.photos.length} 張；只會使用前 ${cap} 張。`;
     note.classList.add("show");
@@ -475,10 +605,7 @@ async function renderPreview(){
 }
 
 function getGridConfig(layout){
-  if(layout==="grid4") return {cols:2,rows:2,cap:4};
-  if(layout==="grid6") return {cols:2,rows:3,cap:6};
-  if(layout==="grid9") return {cols:3,rows:3,cap:9};
-  return null;
+  if(layout==="grid2h")return {cols:2,rows:1,cap:2};if(layout==="grid2v")return {cols:1,rows:2,cap:2};if(layout==="grid4")return {cols:2,rows:2,cap:4};if(layout==="grid6v")return {cols:2,rows:3,cap:6};if(layout==="grid6h")return {cols:3,rows:2,cap:6};if(layout==="grid9")return {cols:3,rows:3,cap:9};return null;
 }
 
 function ratioDimensions(ratio, longSide){
@@ -515,27 +642,17 @@ async function drawCollage(canvas, preview){
       x += w + (i < photos.length-1 ? gap : 0);
     });
     width = Math.round(x);
-  }else{
-    const cfg = getGridConfig(state.layout);
-    const used = photos.slice(0,cfg.cap);
-    const dims = ratioDimensions(state.ratio, preview ? 760 : (state.ratio==="9:16" ? 3200 : 2400));
-    width = dims.w;
-    height = dims.h;
-    const gap = preview ? gapBase*1.5 : gapBase*4;
-    const cellW = (width - gap*(cfg.cols-1)) / cfg.cols;
-    const cellH = (height - gap*(cfg.rows-1)) / cfg.rows;
-    used.forEach((p,i)=>{
-      const col = i % cfg.cols;
-      const row = Math.floor(i / cfg.cols);
-      placements.push({
-        photo:p,
-        x:col*(cellW+gap),
-        y:row*(cellH+gap),
-        w:cellW,
-        h:cellH,
-        mode:state.fit
-      });
-    });
+  }else if(state.layout.startsWith("grid")){
+    const dims=ratioDimensions(state.ratio,preview?760:(state.ratio==="9:16"?3200:2400));width=dims.w;height=dims.h;const gap=preview?gapBase*1.5:gapBase*4;
+    if(["grid3top","grid3left","grid3bottom","grid3right"].includes(state.layout)){
+      const used=photos.slice(0,3),halfW=(width-gap)/2,halfH=(height-gap)/2;
+      const maps={grid3top:[{x:0,y:0,w:width,h:halfH},{x:0,y:halfH+gap,w:halfW,h:halfH},{x:halfW+gap,y:halfH+gap,w:halfW,h:halfH}],grid3bottom:[{x:0,y:0,w:halfW,h:halfH},{x:halfW+gap,y:0,w:halfW,h:halfH},{x:0,y:halfH+gap,w:width,h:halfH}],grid3left:[{x:0,y:0,w:halfW,h:height},{x:halfW+gap,y:0,w:halfW,h:halfH},{x:halfW+gap,y:halfH+gap,w:halfW,h:halfH}],grid3right:[{x:0,y:0,w:halfW,h:halfH},{x:0,y:halfH+gap,w:halfW,h:halfH},{x:halfW+gap,y:0,w:halfW,h:height}]};
+      used.forEach((p,i)=>placements.push({photo:p,...maps[state.layout][i],mode:state.fit}));
+    }else{const cfg=getGridConfig(state.layout),used=photos.slice(0,cfg.cap),cellW=(width-gap*(cfg.cols-1))/cfg.cols,cellH=(height-gap*(cfg.rows-1))/cfg.rows;used.forEach((p,i)=>{const col=i%cfg.cols,row=Math.floor(i/cfg.cols);placements.push({photo:p,x:col*(cellW+gap),y:row*(cellH+gap),w:cellW,h:cellH,mode:state.fit});});}
+  }else if(["vertical3","vertical4"].includes(state.layout)){
+    const limit=state.layout==="vertical3"?3:4,used=photos.slice(0,limit);width=preview?720:1800;const gap=preview?gapBase*1.5:gapBase*4;let y=0;used.forEach((p,i)=>{const h=Math.max(1,Math.round(width*p.height/p.width));placements.push({photo:p,x:0,y,w:width,h,mode:"contain"});y+=h+(i<used.length-1?gap:0);});height=Math.round(y);
+  }else if(["horizontal3","horizontal4"].includes(state.layout)){
+    const limit=state.layout==="horizontal3"?3:4,used=photos.slice(0,limit);height=preview?620:1500;const gap=preview?gapBase*1.5:gapBase*4;let x=0;used.forEach((p,i)=>{const w=Math.max(1,Math.round(height*p.width/p.height));placements.push({photo:p,x,y:0,w,h:height,mode:"contain"});x+=w+(i<used.length-1?gap:0);});width=Math.round(x);
   }
 
   const maxCanvasSide = preview ? 1800 : 8192;
@@ -558,7 +675,23 @@ async function drawCollage(canvas, preview){
   ctx.imageSmoothingQuality = "high";
 
   const radius = (preview ? radiusBase*1.5 : radiusBase*4) * scaleDown;
-  placements.forEach(p=>drawImageInBox(ctx,p.photo.img,p.x,p.y,p.w,p.h,p.mode,radius));
+  placements.forEach(p=>drawImageInBox(ctx,p.photo,p.x,p.y,p.w,p.h,p.mode,radius));
+}
+
+
+function getOrientedCanvas(photo){
+  const rotation = ((photo.rotation || 0) + 360) % 360;
+  if(!rotation) return photo.img;
+  const src = photo.img;
+  const canvas = document.createElement("canvas");
+  const swap = rotation === 90 || rotation === 270;
+  canvas.width = swap ? src.naturalHeight : src.naturalWidth;
+  canvas.height = swap ? src.naturalWidth : src.naturalHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.translate(canvas.width/2,canvas.height/2);
+  ctx.rotate(rotation*Math.PI/180);
+  ctx.drawImage(src,-src.naturalWidth/2,-src.naturalHeight/2);
+  return canvas;
 }
 
 function roundedRectPath(ctx,x,y,w,h,r){
@@ -572,7 +705,10 @@ function roundedRectPath(ctx,x,y,w,h,r){
   ctx.closePath();
 }
 
-function drawImageInBox(ctx,img,x,y,w,h,mode,radius){
+function drawImageInBox(ctx,photo,x,y,w,h,mode,radius){
+  const img = getOrientedCanvas(photo);
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
   ctx.save();
   roundedRectPath(ctx,x,y,w,h,radius);
   ctx.clip();
@@ -580,16 +716,18 @@ function drawImageInBox(ctx,img,x,y,w,h,mode,radius){
   if(mode==="contain"){
     ctx.fillStyle="#fff";
     ctx.fillRect(x,y,w,h);
-    const scale = Math.min(w/img.naturalWidth,h/img.naturalHeight);
-    const dw = img.naturalWidth*scale;
-    const dh = img.naturalHeight*scale;
+    const scale = Math.min(w/iw,h/ih);
+    const dw = iw*scale;
+    const dh = ih*scale;
     ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
   }else{
-    const scale = Math.max(w/img.naturalWidth,h/img.naturalHeight);
+    const scale = Math.max(w/iw,h/ih);
     const sw = w/scale;
     const sh = h/scale;
-    const sx = (img.naturalWidth-sw)/2;
-    const sy = (img.naturalHeight-sh)/2;
+    const fx = Number.isFinite(photo.focusX) ? photo.focusX : 0.5;
+    const fy = Number.isFinite(photo.focusY) ? photo.focusY : 0.5;
+    const sx = Math.max(0,Math.min(iw-sw,fx*iw-sw/2));
+    const sy = Math.max(0,Math.min(ih-sh,fy*ih-sh/2));
     ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
   }
   ctx.restore();
@@ -647,8 +785,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("roundRange").value = state.radius;
   document.getElementById("roundValue").textContent = state.radius;
 
-  const layoutButton = document.querySelector(`.layout[data-layout="${state.layout}"]`) || document.querySelector('.layout[data-layout="vertical"]');
-  setLayout(layoutButton.dataset.layout,layoutButton);
+  const modeButton=document.querySelector(`.mode-tab[data-mode="${state.mode}"]`)||document.querySelector('.mode-tab[data-mode="join"]');
+  setMode(modeButton.dataset.mode,modeButton);
   setFit(state.fit);
 
   document.querySelectorAll(".ratio-btn").forEach(b=>b.classList.toggle("active",b.dataset.ratio===state.ratio));
