@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>手機圖片拼接 v2.3</title>
+<title>手機圖片拼接 v3</title>
 <style>
 :root{
   --bg:#eef1f4;
@@ -238,6 +238,53 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
 
 .mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px 0}.mode-tab{border:0;border-radius:10px;padding:10px;background:#e9eef2;color:#65737e;font-weight:800}.mode-tab.active{background:var(--navy);color:#fff}.layout-panel{display:none}.layout-panel.active{display:block}.icon-v3{grid-template-rows:repeat(3,1fr)}.icon-h3{grid-template-columns:repeat(3,1fr)}.icon-v4{grid-template-rows:repeat(4,1fr)}.icon-h4{grid-template-columns:repeat(4,1fr)}.icon-6h{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr)}.custom-grid{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}.custom-grid .big-top{grid-column:1/-1}.custom-grid .big-bottom{grid-column:1/-1;grid-row:2}.custom-grid.left-big .big-left{grid-row:1/-1}.custom-grid.right-big .big-right{grid-column:2;grid-row:1/-1}
 
+
+.step-tabs{
+  position:sticky;top:calc(73px + env(safe-area-inset-top));z-index:25;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+  padding:8px 10px;background:rgba(238,241,244,.96);backdrop-filter:blur(12px)
+}
+.step-tab{
+  border:0;border-radius:10px;padding:9px 4px;background:#e4e9ed;
+  color:#687680;font-weight:800;font-size:12px
+}
+.step-tab.active{background:var(--navy);color:#fff}
+.step-panel{display:none}
+.step-panel.active{display:block}
+.compact-card{margin-bottom:9px}
+.compact-note{font-size:12px;color:var(--muted);padding:0 12px 10px}
+.photo-strip{
+  display:flex;gap:8px;overflow-x:auto;padding:10px 10px 12px;scrollbar-width:none
+}
+.photo-chip{
+  flex:0 0 88px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px
+}
+.photo-chip img{width:76px;height:76px;object-fit:cover;border-radius:9px;background:#edf1f4}
+.photo-chip-index{text-align:center;font-size:11px;color:var(--muted);margin-top:5px}
+.photo-chip-actions{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px}
+.photo-chip-actions button{
+  border:0;border-radius:8px;background:var(--soft);padding:6px 0;font-weight:800;color:#465865
+}
+.layout-scroll{display:flex;gap:8px;overflow-x:auto;padding:10px 12px 12px;scrollbar-width:none}
+.layout-scroll .layout{flex:0 0 92px}
+.preview-card{margin-bottom:8px}
+.preview-controls{
+  display:none;border-top:1px solid var(--line);padding:10px 12px 12px;background:#fbfcfd
+}
+.preview-controls.show{display:block}
+.selected-title{font-weight:800;margin-bottom:8px}
+.mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nudge-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.nudge-row button,.reset-focus-btn{
+  border:0;border-radius:9px;padding:9px 5px;background:var(--soft);font-weight:800;color:var(--text)
+}
+.reset-focus-btn{width:100%;margin-top:8px}
+.control-block{margin-top:9px}
+.control-block:first-child{margin-top:0}
+.control-block .control-head{margin-bottom:4px}
+#focusModal{display:none!important}
+main{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+
 </style>
 </head>
 <body>
@@ -245,78 +292,178 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
   <div class="header-row">
     <div>
       <h1>🖼️ 手機圖片拼接</h1>
-      <div class="subtitle">基礎拼接＋可縮放移動取景</div>
+      <div class="subtitle">三步驟簡潔版</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
 </header>
 
+<div class="step-tabs">
+  <button class="step-tab active" data-step="photos" onclick="showStep('photos',this)">① 照片</button>
+  <button class="step-tab" data-step="layout" onclick="showStep('layout',this)">② 版型</button>
+  <button class="step-tab" data-step="preview" onclick="showStep('preview',this)">③ 預覽</button>
+</div>
+
+
+
 <main>
-  <section class="card" id="topUploadCard">
-    <div class="upload-wrap">
-      <label class="upload-box" for="fileInput">
-        <div>
-          <div class="upload-icon">＋</div>
-          <div class="upload-main">選擇照片</div>
-          <div class="upload-sub">可一次選多張，最多建議 20 張</div>
-        </div>
-      </label>
-      <input id="fileInput" class="hidden" type="file" accept="image/*" multiple>
-    </div>
-  </section>
-
-  <section class="card">
-    <div class="card-title">選擇版型</div>
-    <div class="mode-tabs">
-      <button class="mode-tab active" data-mode="join" onclick="setMode('join',this)">拼接</button>
-      <button class="mode-tab" data-mode="grid" onclick="setMode('grid',this)">格子</button>
-    </div>
-    <div id="joinLayouts" class="layout-panel active"><div class="layouts">
-      <button class="layout active" data-layout="vertical" onclick="setLayout('vertical',this)"><div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">上下拼接</div></button>
-      <button class="layout" data-layout="horizontal" onclick="setLayout('horizontal',this)"><div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">左右拼接</div></button>
-      <button class="layout" data-layout="vertical3" onclick="setLayout('vertical3',this)"><div class="layout-icon icon-v3"><span></span><span></span><span></span></div><div class="layout-label">3 張直排</div></button>
-      <button class="layout" data-layout="horizontal3" onclick="setLayout('horizontal3',this)"><div class="layout-icon icon-h3"><span></span><span></span><span></span></div><div class="layout-label">3 張橫排</div></button>
-      <button class="layout" data-layout="vertical4" onclick="setLayout('vertical4',this)"><div class="layout-icon icon-v4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 張直排</div></button>
-      <button class="layout" data-layout="horizontal4" onclick="setLayout('horizontal4',this)"><div class="layout-icon icon-h4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 張橫排</div></button>
-    </div></div>
-    <div id="gridLayouts" class="layout-panel"><div class="layouts grid-layouts">
-      <button class="layout" data-layout="grid2h" onclick="setLayout('grid2h',this)"><div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">2 格左右</div></button>
-      <button class="layout" data-layout="grid2v" onclick="setLayout('grid2v',this)"><div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">2 格上下</div></button>
-      <button class="layout" data-layout="grid3top" onclick="setLayout('grid3top',this)"><div class="layout-icon custom-grid"><span class="big-top"></span><span></span><span></span></div><div class="layout-label">上 1 下 2</div></button>
-      <button class="layout" data-layout="grid3left" onclick="setLayout('grid3left',this)"><div class="layout-icon custom-grid left-big"><span class="big-left"></span><span></span><span></span></div><div class="layout-label">左 1 右 2</div></button>
-      <button class="layout" data-layout="grid3bottom" onclick="setLayout('grid3bottom',this)"><div class="layout-icon custom-grid"><span></span><span></span><span class="big-bottom"></span></div><div class="layout-label">上 2 下 1</div></button>
-      <button class="layout" data-layout="grid3right" onclick="setLayout('grid3right',this)"><div class="layout-icon custom-grid right-big"><span></span><span></span><span class="big-right"></span></div><div class="layout-label">左 2 右 1</div></button>
-      <button class="layout" data-layout="grid4" onclick="setLayout('grid4',this)"><div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 格</div></button>
-      <button class="layout" data-layout="grid6v" onclick="setLayout('grid6v',this)"><div class="layout-icon icon-6"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">6 格 2×3</div></button>
-      <button class="layout" data-layout="grid6h" onclick="setLayout('grid6h',this)"><div class="layout-icon icon-6h"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">6 格 3×2</div></button>
-      <button class="layout" data-layout="grid9" onclick="setLayout('grid9',this)"><div class="layout-icon icon-9"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">9 格</div></button>
-    </div></div>
-    <div class="controls">
-      <div class="control"><div class="control-head"><label for="gapRange">照片間距</label><span class="control-value"><span id="gapValue">6</span> px</span></div><input id="gapRange" type="range" min="0" max="24" value="6"></div>
-      <div class="control"><div class="control-head"><label for="roundRange">照片圓角</label><span class="control-value"><span id="roundValue">0</span> px</span></div><input id="roundRange" type="range" min="0" max="30" value="0"></div>
-      <div class="control"><div class="control-head"><label>格子內照片</label></div><div class="segment"><button id="fitCover" class="active" onclick="setFit('cover')">填滿裁切</button><button id="fitContain" onclick="setFit('contain')">完整顯示</button></div></div>
-      <div class="control ratio-wrap" id="ratioWrap"><div class="control-head"><label>輸出比例</label></div><div class="segment" style="grid-template-columns:repeat(3,1fr)"><button class="ratio-btn active" data-ratio="1:1" onclick="setRatio('1:1',this)">1:1</button><button class="ratio-btn" data-ratio="4:5" onclick="setRatio('4:5',this)">4:5</button><button class="ratio-btn" data-ratio="9:16" onclick="setRatio('9:16',this)">9:16</button></div></div>
-    </div>
-    <div id="capacityNote" class="capacity"></div>
-  </section>
-
-  <section class="card" id="photoCard">
-    <div class="card-title">照片順序 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
-    <div class="card-note">可調整順序與左右旋轉；格子模式可直接點預覽照片，放大並拖動選擇要保留的畫面。</div>
-    <div id="photoList" class="photo-list"></div>
-  </section>
-
-  <section class="card">
-    <div class="card-title">預覽</div>
-    <div class="preview-wrap">
-      <div class="canvas-shell">
-        <div id="emptyPreview" class="empty-preview">選擇照片後會在這裡預覽</div>
-        <canvas id="previewCanvas" class="hidden"></canvas>
+  <section id="stepPhotos" class="step-panel active">
+    <section class="card compact-card" id="topUploadCard">
+      <div class="upload-wrap">
+        <label class="upload-box" for="fileInput">
+          <div>
+            <div class="upload-icon">＋</div>
+            <div class="upload-main">選擇照片</div>
+            <div class="upload-sub">可一次選多張</div>
+          </div>
+        </label>
+        <input id="fileInput" class="hidden" type="file" accept="image/*" multiple>
       </div>
-      <div id="previewHint" class="preview-hint hidden">點一下格子中的照片，可調整要保留的畫面</div>
-    </div>
+    </section>
+
+    <section class="card compact-card">
+      <div class="card-title">照片順序 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
+      <div class="compact-note">左右滑動查看照片；可旋轉、前移、後移或刪除。</div>
+      <div id="photoStrip" class="photo-strip"></div>
+      <div id="photoList" class="hidden"></div>
+    </section>
+
+    <button class="btn primary" style="width:100%" onclick="showStep('layout',document.querySelector('[data-step=layout]'))">下一步：選版型</button>
+  </section>
+
+  <section id="stepLayout" class="step-panel">
+    <section class="card compact-card">
+      <div class="card-title">選擇版型</div>
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="join" onclick="setMode('join',this)">拼接</button>
+        <button class="mode-tab" data-mode="grid" onclick="setMode('grid',this)">格子</button>
+      </div>
+
+      <div id="joinLayouts" class="layout-panel active">
+        <div class="layout-scroll">
+          <button class="layout active" data-layout="vertical" onclick="setLayout('vertical',this)">
+            <div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">上下</div>
+          </button>
+          <button class="layout" data-layout="horizontal" onclick="setLayout('horizontal',this)">
+            <div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">左右</div>
+          </button>
+          <button class="layout" data-layout="vertical3" onclick="setLayout('vertical3',this)">
+            <div class="layout-icon icon-v3"><span></span><span></span><span></span></div><div class="layout-label">3 直排</div>
+          </button>
+          <button class="layout" data-layout="horizontal3" onclick="setLayout('horizontal3',this)">
+            <div class="layout-icon icon-h3"><span></span><span></span><span></span></div><div class="layout-label">3 橫排</div>
+          </button>
+          <button class="layout" data-layout="vertical4" onclick="setLayout('vertical4',this)">
+            <div class="layout-icon icon-v4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 直排</div>
+          </button>
+          <button class="layout" data-layout="horizontal4" onclick="setLayout('horizontal4',this)">
+            <div class="layout-icon icon-h4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 橫排</div>
+          </button>
+        </div>
+      </div>
+
+      <div id="gridLayouts" class="layout-panel">
+        <div class="layout-scroll">
+          <button class="layout" data-layout="grid2h" onclick="setLayout('grid2h',this)">
+            <div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">2 左右</div>
+          </button>
+          <button class="layout" data-layout="grid2v" onclick="setLayout('grid2v',this)">
+            <div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">2 上下</div>
+          </button>
+          <button class="layout" data-layout="grid3top" onclick="setLayout('grid3top',this)">
+            <div class="layout-icon custom-grid"><span class="big-top"></span><span></span><span></span></div><div class="layout-label">上1下2</div>
+          </button>
+          <button class="layout" data-layout="grid3left" onclick="setLayout('grid3left',this)">
+            <div class="layout-icon custom-grid left-big"><span class="big-left"></span><span></span><span></span></div><div class="layout-label">左1右2</div>
+          </button>
+          <button class="layout" data-layout="grid3bottom" onclick="setLayout('grid3bottom',this)">
+            <div class="layout-icon custom-grid"><span></span><span></span><span class="big-bottom"></span></div><div class="layout-label">上2下1</div>
+          </button>
+          <button class="layout" data-layout="grid3right" onclick="setLayout('grid3right',this)">
+            <div class="layout-icon custom-grid right-big"><span></span><span></span><span class="big-right"></span></div><div class="layout-label">左2右1</div>
+          </button>
+          <button class="layout" data-layout="grid4" onclick="setLayout('grid4',this)">
+            <div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 格</div>
+          </button>
+          <button class="layout" data-layout="grid6v" onclick="setLayout('grid6v',this)">
+            <div class="layout-icon icon-6"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">6 格</div>
+          </button>
+          <button class="layout" data-layout="grid9" onclick="setLayout('grid9',this)">
+            <div class="layout-icon icon-9"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">9 格</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="control">
+          <div class="control-head"><label for="gapRange">照片間距</label><span class="control-value"><span id="gapValue">6</span> px</span></div>
+          <input id="gapRange" type="range" min="0" max="24" value="6">
+        </div>
+        <div class="control">
+          <div class="control-head"><label for="roundRange">照片圓角</label><span class="control-value"><span id="roundValue">0</span> px</span></div>
+          <input id="roundRange" type="range" min="0" max="30" value="0">
+        </div>
+        <div class="control">
+          <div class="control-head"><label>格子內照片</label></div>
+          <div class="segment">
+            <button id="fitCover" class="active" onclick="setFit('cover')">填滿裁切</button>
+            <button id="fitContain" onclick="setFit('contain')">完整顯示</button>
+          </div>
+        </div>
+        <div class="control ratio-wrap" id="ratioWrap">
+          <div class="control-head"><label>輸出比例</label></div>
+          <div class="segment" style="grid-template-columns:repeat(3,1fr)">
+            <button class="ratio-btn active" data-ratio="1:1" onclick="setRatio('1:1',this)">1:1</button>
+            <button class="ratio-btn" data-ratio="4:5" onclick="setRatio('4:5',this)">4:5</button>
+            <button class="ratio-btn" data-ratio="9:16" onclick="setRatio('9:16',this)">9:16</button>
+          </div>
+        </div>
+      </div>
+      <div id="capacityNote" class="capacity"></div>
+    </section>
+
+    <button class="btn primary" style="width:100%" onclick="showStep('preview',document.querySelector('[data-step=preview]'))">下一步：預覽</button>
+  </section>
+
+  <section id="stepPreview" class="step-panel">
+    <section class="card preview-card">
+      <div class="card-title">預覽</div>
+      <div class="preview-wrap">
+        <div class="canvas-shell">
+          <div id="emptyPreview" class="empty-preview">選擇照片後會在這裡預覽</div>
+          <canvas id="previewCanvas" class="hidden"></canvas>
+        </div>
+        <div id="previewHint" class="preview-hint hidden">點格子照片後，直接用下方控制調整位置與縮放</div>
+      </div>
+
+      <div id="previewControls" class="preview-controls">
+        <div class="selected-title">正在調整：第 <span id="selectedPhotoNumber">1</span> 張照片</div>
+
+        <div class="control-block">
+          <div class="control-head"><label>左右位置</label><span class="control-value" id="inlineXText">50%</span></div>
+          <input id="inlineXRange" type="range" min="0" max="100" value="50">
+        </div>
+        <div class="control-block">
+          <div class="control-head"><label>上下位置</label><span class="control-value" id="inlineYText">50%</span></div>
+          <input id="inlineYRange" type="range" min="0" max="100" value="50">
+        </div>
+        <div class="control-block">
+          <div class="control-head"><label>照片縮放</label><span class="control-value" id="inlineZoomText">100%</span></div>
+          <input id="inlineZoomRange" type="range" min="100" max="250" value="100">
+        </div>
+
+        <div class="nudge-row">
+          <button onclick="nudgeSelected(-0.05,0)">←</button>
+          <button onclick="nudgeSelected(0.05,0)">→</button>
+          <button onclick="nudgeSelected(0,-0.05)">↑</button>
+          <button onclick="nudgeSelected(0,0.05)">↓</button>
+        </div>
+        <button class="reset-focus-btn" onclick="resetSelectedFocus()">恢復置中</button>
+      </div>
+    </section>
   </section>
 </main>
+
 
 <div class="bottom">
   <div class="bottom-inner">
@@ -324,7 +471,6 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
     <button id="exportBtn" class="btn primary" onclick="exportJpg()" disabled>輸出／分享 JPG</button>
   </div>
 </div>
-
 
 <div id="focusModal" class="focus-modal" onclick="closeFocusByBackdrop(event)">
   <div class="focus-sheet">
@@ -375,6 +521,87 @@ const state = {
 const capacities = {grid2h:2,grid2v:2,grid3top:3,grid3left:3,grid3bottom:3,grid3right:3,grid4:4,grid6v:6,grid6h:6,grid9:9};
 let previewTimer = null;
 let previewHitboxes = [];
+
+
+let selectedGridPhotoIndex = -1;
+
+function showStep(step, button){
+  document.querySelectorAll(".step-panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".step-tab").forEach(b=>b.classList.remove("active"));
+  const panel = document.getElementById("step"+step.charAt(0).toUpperCase()+step.slice(1));
+  if(panel) panel.classList.add("active");
+  if(button) button.classList.add("active");
+  if(step==="preview") schedulePreview();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function renderPhotoStrip(){
+  const root = document.getElementById("photoStrip");
+  if(!root) return;
+  root.innerHTML = "";
+  state.photos.forEach((photo,index)=>{
+    const chip = document.createElement("div");
+    chip.className = "photo-chip";
+    chip.innerHTML = `
+      <img src="${photo.url}" alt="">
+      <div class="photo-chip-index">第 ${index+1} 張</div>
+      <div class="photo-chip-actions">
+        <button onclick="rotatePhoto(${index},-90)">↶</button>
+        <button onclick="rotatePhoto(${index},90)">↷</button>
+        <button onclick="movePhoto(${index},-1)" ${index===0?"disabled":""}>←</button>
+        <button onclick="movePhoto(${index},1)" ${index===state.photos.length-1?"disabled":""}>→</button>
+        <button onclick="removePhoto(${index})" style="grid-column:1/-1;color:var(--danger)">刪除</button>
+      </div>`;
+    root.appendChild(chip);
+  });
+}
+
+function selectGridPhoto(index){
+  if(!state.layout.startsWith("grid") || index < 0 || !state.photos[index]) return;
+  selectedGridPhotoIndex = index;
+  const photo = state.photos[index];
+  document.getElementById("selectedPhotoNumber").textContent = index+1;
+  document.getElementById("inlineXRange").value = Math.round((Number.isFinite(photo.focusX)?photo.focusX:0.5)*100);
+  document.getElementById("inlineYRange").value = Math.round((Number.isFinite(photo.focusY)?photo.focusY:0.5)*100);
+  document.getElementById("inlineZoomRange").value = Math.round((Number.isFinite(photo.zoom)?photo.zoom:1)*100);
+  syncInlineFocusText();
+  document.getElementById("previewControls").classList.add("show");
+}
+
+function syncInlineFocusText(){
+  document.getElementById("inlineXText").textContent = document.getElementById("inlineXRange").value+"%";
+  document.getElementById("inlineYText").textContent = document.getElementById("inlineYRange").value+"%";
+  document.getElementById("inlineZoomText").textContent = document.getElementById("inlineZoomRange").value+"%";
+}
+function applyInlineFocus(){
+  const photo = state.photos[selectedGridPhotoIndex];
+  if(!photo) return;
+  photo.focusX = Number(document.getElementById("inlineXRange").value)/100;
+  photo.focusY = Number(document.getElementById("inlineYRange").value)/100;
+  photo.zoom = Number(document.getElementById("inlineZoomRange").value)/100;
+  syncInlineFocusText();
+  schedulePreview();
+}
+function nudgeSelected(dx,dy){
+  const photo = state.photos[selectedGridPhotoIndex];
+  if(!photo) return;
+  photo.focusX = Math.min(1,Math.max(0,(Number.isFinite(photo.focusX)?photo.focusX:0.5)+dx));
+  photo.focusY = Math.min(1,Math.max(0,(Number.isFinite(photo.focusY)?photo.focusY:0.5)+dy));
+  document.getElementById("inlineXRange").value = Math.round(photo.focusX*100);
+  document.getElementById("inlineYRange").value = Math.round(photo.focusY*100);
+  syncInlineFocusText();
+  schedulePreview();
+}
+function resetSelectedFocus(){
+  const photo = state.photos[selectedGridPhotoIndex];
+  if(!photo) return;
+  photo.focusX = 0.5; photo.focusY = 0.5; photo.zoom = 1;
+  document.getElementById("inlineXRange").value = 50;
+  document.getElementById("inlineYRange").value = 50;
+  document.getElementById("inlineZoomRange").value = 100;
+  syncInlineFocusText();
+  schedulePreview();
+}
 
 const fileInput = document.getElementById("fileInput");
 const previewCanvas = document.getElementById("previewCanvas");
@@ -430,6 +657,7 @@ function setLayout(layout, button){
   document.querySelectorAll(".layout").forEach(b=>b.classList.remove("active"));
   if(button) button.classList.add("active");
   document.getElementById("ratioWrap").classList.toggle("show", !!capacities[layout]);
+  if(!layout.startsWith("grid")){ selectedGridPhotoIndex=-1; document.getElementById("previewControls").classList.remove("show"); }
   updateCapacityNote();
   schedulePreview();
 }
@@ -487,6 +715,7 @@ function renderPhotos(){
     root.appendChild(row);
   });
   document.getElementById("exportBtn").disabled = state.photos.length===0;
+  renderPhotoStrip();
   document.getElementById("topUploadCard").classList.toggle("hidden", state.photos.length>0);
   updateCapacityNote();
 }
@@ -870,7 +1099,7 @@ previewCanvas.addEventListener("click", event=>{
     x >= box.x && x <= box.x + box.w &&
     y >= box.y && y <= box.y + box.h
   );
-  if(hit && hit.index >= 0) openFocus(hit.index);
+  if(hit && hit.index >= 0) selectGridPhoto(hit.index);
 });
 
 function showToast(text){
@@ -883,6 +1112,11 @@ function showToast(text){
 function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s]));
 }
+
+
+["inlineXRange","inlineYRange","inlineZoomRange"].forEach(id=>{
+  document.getElementById(id).addEventListener("input",applyInlineFocus);
+});
 
 document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("gapRange").value = state.gap;
