@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>手機圖片拼接 v5.2</title>
+<title>手機圖片拼接 v5.2.1</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -285,6 +285,12 @@ body.editor-locked{
   .edit-sheet{max-width:none}
 }
 
+
+.add-photo-btn{
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;text-align:center;user-select:none;-webkit-user-select:none
+}
+
 </style>
 </head>
 <body>
@@ -292,13 +298,14 @@ body.editor-locked{
   <div class="header-row">
     <div>
       <h1>🖼️ 手機圖片拼接</h1>
-      <div class="subtitle">v5.2・全螢幕單格編輯</div>
+      <div class="subtitle">v5.2.1・修正加照片按鈕</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
 </header>
 
 
+<input id="fileInput" type="file" accept="image/*" multiple hidden>
 <main>
 <section class="card">
     <div class="card-title">照片 <span id="photoCount" style="color:var(--muted);font-size:12px"></span></div>
@@ -420,7 +427,7 @@ body.editor-locked{
 
 <div class="bottom">
   <div class="bottom-inner">
-    <button class="btn" onclick="document.getElementById('fileInput').click()">＋ 加照片</button>
+    <label class="btn add-photo-btn" for="fileInput">＋ 加照片</label>
     <button id="exportBtn" class="btn primary" onclick="exportJpg()" disabled>輸出／分享 JPG</button>
   </div>
 </div>
