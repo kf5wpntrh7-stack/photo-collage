@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>手機圖片拼接 v4</title>
+<title>手機圖片拼接 v4.1</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -129,7 +129,21 @@ input[type=range]{width:100%;accent-color:var(--navy)}
 .canvas-shell{
   min-height:190px;border-radius:13px;overflow:auto;background:#dfe4e8;display:grid;place-items:center;padding:10px
 }
-canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px 18px rgba(31,45,57,.14)}
+canvas{display:block;width:100%;height:auto;background:#fff;box-shadow:0 5px 18px rgba(31,45,57,.14);user-select:none;-webkit-user-select:none}
+.canvas-stage{position:relative;display:inline-block;max-width:100%;line-height:0;user-select:none;-webkit-user-select:none}
+.grid-overlay{position:absolute;inset:0;pointer-events:none;user-select:none;-webkit-user-select:none}
+.grid-overlay.active{pointer-events:auto}
+.grid-hit{
+  position:absolute;border:2px solid transparent;background:rgba(0,0,0,0);
+  padding:0;margin:0;border-radius:8px;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none
+}
+.grid-hit:active,.grid-hit.selected{border-color:#33a0ff;background:rgba(51,160,255,.10)}
+.grid-badge{
+  position:absolute;top:5px;left:5px;min-width:24px;height:24px;border-radius:999px;
+  background:rgba(38,56,73,.82);color:#fff;font-size:12px;font-weight:800;
+  display:grid;place-items:center;line-height:1;pointer-events:none
+}
 .empty-preview{text-align:center;color:var(--muted);padding:35px 15px;font-size:13px}
 .preview-hint{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
 .preview-hint strong{color:var(--navy)}
@@ -187,7 +201,7 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
   <div class="header-row">
     <div>
       <h1>🖼️ 手機圖片拼接</h1>
-      <div class="subtitle">v4・點格子直接拖曳與雙指縮放</div>
+      <div class="subtitle">v4.1・真正單格點擊編輯</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -323,7 +337,10 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
       <div class="preview-wrap">
         <div class="canvas-shell">
           <div id="emptyPreview" class="empty-preview">選擇照片後會在這裡預覽</div>
-          <canvas id="previewCanvas" class="hidden"></canvas>
+          <div id="canvasStage" class="canvas-stage hidden">
+            <canvas id="previewCanvas"></canvas>
+            <div id="gridOverlay" class="grid-overlay"></div>
+          </div>
         </div>
         <div id="previewHint" class="preview-hint hidden">
           <strong>格子模式：</strong>點一下某張格子照片，可直接拖曳與雙指縮放
@@ -344,7 +361,7 @@ canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 5px
   <div class="edit-sheet">
     <div class="edit-grab"></div>
     <div class="edit-title">調整格子畫面</div>
-    <div class="edit-note">單指拖曳移動位置，雙指縮放照片。</div>
+    <div class="edit-note">你現在只會調整這一格。單指拖曳移動，雙指縮放。</div>
     <div id="editStage" class="edit-stage">
       <img id="editImage" alt="">
       <div class="edit-cross"></div>
@@ -374,6 +391,8 @@ const joinCaps = {vertical3:3,horizontal3:3,vertical4:4,horizontal4:4};
 
 const fileInput = document.getElementById("fileInput");
 const previewCanvas = document.getElementById("previewCanvas");
+const canvasStage = document.getElementById("canvasStage");
+const gridOverlay = document.getElementById("gridOverlay");
 let previewTimer = null;
 let previewHitboxes = [];
 
@@ -442,6 +461,7 @@ function setMode(mode, button){
   if(button) button.classList.add("active");
   document.getElementById("joinLayouts").classList.toggle("active", mode==="join");
   document.getElementById("gridLayouts").classList.toggle("active", mode==="grid");
+  if(mode==="grid" && state.fit!=="cover") setFit("cover");
   const activePanel = mode==="join" ? document.getElementById("joinLayouts") : document.getElementById("gridLayouts");
   let candidate = activePanel.querySelector(`.layout[data-layout="${state.layout}"]`);
   if(!candidate) candidate = activePanel.querySelector(".layout");
@@ -565,15 +585,18 @@ function schedulePreview(){
 
 async function renderPreview(){
   if(!state.photos.length){
-    previewCanvas.classList.add("hidden");
+    canvasStage.classList.add("hidden");
+    gridOverlay.innerHTML = "";
+    gridOverlay.classList.remove("active");
     document.getElementById("emptyPreview").classList.remove("hidden");
     document.getElementById("previewHint").classList.add("hidden");
     return;
   }
   document.getElementById("emptyPreview").classList.add("hidden");
-  previewCanvas.classList.remove("hidden");
+  canvasStage.classList.remove("hidden");
   try{
     await drawCollage(previewCanvas, true);
+    buildGridOverlay();
     document.getElementById("previewHint").classList.toggle("hidden", !state.layout.startsWith("grid"));
   }catch(e){
     console.error(e);
@@ -782,16 +805,36 @@ function drawImageInBox(ctx,photo,x,y,w,h,mode,radius){
   ctx.restore();
 }
 
-previewCanvas.addEventListener("click", event=>{
-  if(!state.layout.startsWith("grid")) return;
-  const rect = previewCanvas.getBoundingClientRect();
-  const scaleX = previewCanvas.width / rect.width;
-  const scaleY = previewCanvas.height / rect.height;
-  const x = (event.clientX - rect.left) * scaleX;
-  const y = (event.clientY - rect.top) * scaleY;
-  const hit = previewHitboxes.find(box => x >= box.x && x <= box.x+box.w && y >= box.y && y <= box.y+box.h);
-  if(hit && hit.index >= 0) openEditor(hit.index, hit);
-});
+
+
+function buildGridOverlay(){
+  gridOverlay.innerHTML = "";
+  const isGrid = state.layout.startsWith("grid");
+  gridOverlay.classList.toggle("active", isGrid);
+  if(!isGrid) return;
+
+  previewHitboxes.forEach((box, order)=>{
+    if(box.index < 0) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "grid-hit";
+    btn.setAttribute("aria-label", `調整第 ${order+1} 格照片`);
+    btn.style.left = `${(box.x/previewCanvas.width)*100}%`;
+    btn.style.top = `${(box.y/previewCanvas.height)*100}%`;
+    btn.style.width = `${(box.w/previewCanvas.width)*100}%`;
+    btn.style.height = `${(box.h/previewCanvas.height)*100}%`;
+    btn.innerHTML = `<span class="grid-badge">${order+1}</span>`;
+    btn.addEventListener("click", e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      document.querySelectorAll(".grid-hit").forEach(el=>el.classList.remove("selected"));
+      btn.classList.add("selected");
+      openEditor(box.index, box);
+    });
+    btn.addEventListener("touchstart", e=>e.stopPropagation(), {passive:true});
+    gridOverlay.appendChild(btn);
+  });
+}
 
 function openEditor(index, hitbox){
   const photo = state.photos[index];
@@ -819,6 +862,7 @@ function closeEditor(){
   document.getElementById("editModal").classList.remove("show");
   document.body.style.overflow = "";
   editorPhotoIndex = -1;
+  document.querySelectorAll(".grid-hit").forEach(el=>el.classList.remove("selected"));
   activeTouches.clear();
   gestureStart = null;
 }
@@ -1023,6 +1067,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
   setMode(modeButton.dataset.mode, modeButton);
   renderPhotos();
 });
+
+document.addEventListener("selectstart", e=>{
+  if(e.target.closest && (e.target.closest("#canvasStage") || e.target.closest("#editStage"))) e.preventDefault();
+});
+document.addEventListener("contextmenu", e=>{
+  if(e.target.closest && (e.target.closest("#canvasStage") || e.target.closest("#editStage"))) e.preventDefault();
+});
+window.addEventListener("resize", ()=>{ if(state.photos.length) buildGridOverlay(); });
 </script>
 </body>
 </html>
