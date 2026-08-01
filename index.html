@@ -459,43 +459,29 @@ body.editor-locked{
           <button class="ratio-btn" data-ratio="3:5" onclick="setRatio('3:5',this)">3:5</button>
         </div>
         <div class="layout-section-label">格子版型</div>
+        <div class="compact-note" style="padding:4px 0 0">佈局會依你目前選的照片張數自動分格，5 張、8 張都可以。</div>
       </div>
       <div class="layout-scroll">
-        <button class="layout" data-layout="grid2h" onclick="setLayout('grid2h',this)">
-          <div class="layout-icon icon-h"><span></span><span></span></div><div class="layout-label">2 左右</div>
+        <button class="layout" data-layout="gridAuto" onclick="setLayout('gridAuto',this)">
+          <div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div><div class="layout-label">自動</div>
         </button>
-        <button class="layout" data-layout="grid2v" onclick="setLayout('grid2v',this)">
-          <div class="layout-icon icon-v"><span></span><span></span></div><div class="layout-label">2 上下</div>
+        <button class="layout" data-layout="gridFlowV" onclick="setLayout('gridFlowV',this)">
+          <div class="layout-icon icon-6"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">直向分格</div>
         </button>
-        <button class="layout" data-layout="grid2left" onclick="setLayout('grid2left',this)">
-          <div class="layout-icon icon-h"><span style="flex:2"></span><span style="flex:1"></span></div><div class="layout-label">左大右小</div>
+        <button class="layout" data-layout="gridFlowH" onclick="setLayout('gridFlowH',this)">
+          <div class="layout-icon icon-6h"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">橫向分格</div>
         </button>
-        <button class="layout" data-layout="grid2right" onclick="setLayout('grid2right',this)">
-          <div class="layout-icon icon-h"><span style="flex:1"></span><span style="flex:2"></span></div><div class="layout-label">左小右大</div>
+        <button class="layout" data-layout="gridMainLeft" onclick="setLayout('gridMainLeft',this)">
+          <div class="layout-icon icon-h"><span style="flex:2"></span><span style="flex:1"></span></div><div class="layout-label">左主圖</div>
         </button>
-        <button class="layout" data-layout="grid2top" onclick="setLayout('grid2top',this)">
-          <div class="layout-icon icon-v"><span style="flex:2"></span><span style="flex:1"></span></div><div class="layout-label">上大下小</div>
+        <button class="layout" data-layout="gridMainTop" onclick="setLayout('gridMainTop',this)">
+          <div class="layout-icon icon-v"><span style="flex:2"></span><span style="flex:1"></span></div><div class="layout-label">上主圖</div>
         </button>
-        <button class="layout" data-layout="grid2bottom" onclick="setLayout('grid2bottom',this)">
-          <div class="layout-icon icon-v"><span style="flex:1"></span><span style="flex:2"></span></div><div class="layout-label">上小下大</div>
+        <button class="layout" data-layout="gridMainRight" onclick="setLayout('gridMainRight',this)">
+          <div class="layout-icon icon-h"><span style="flex:1"></span><span style="flex:2"></span></div><div class="layout-label">右主圖</div>
         </button>
-        <button class="layout" data-layout="grid4" onclick="setLayout('grid4',this)">
-          <div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div><div class="layout-label">4 格</div>
-        </button>
-        <button class="layout" data-layout="grid6v" onclick="setLayout('grid6v',this)">
-          <div class="layout-icon icon-6"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">6 格直式</div>
-        </button>
-        <button class="layout" data-layout="grid6h" onclick="setLayout('grid6h',this)">
-          <div class="layout-icon icon-6h"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">6 格橫式</div>
-        </button>
-        <button class="layout" data-layout="grid8h" onclick="setLayout('grid8h',this)">
-          <div class="layout-icon icon-8"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">8 格橫式</div>
-        </button>
-        <button class="layout" data-layout="grid8v" onclick="setLayout('grid8v',this)">
-          <div class="layout-icon icon-8v"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">8 格直式</div>
-        </button>
-        <button class="layout" data-layout="grid9" onclick="setLayout('grid9',this)">
-          <div class="layout-icon icon-9"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">9 格</div>
+        <button class="layout" data-layout="gridMainBottom" onclick="setLayout('gridMainBottom',this)">
+          <div class="layout-icon icon-v"><span style="flex:1"></span><span style="flex:2"></span></div><div class="layout-label">下主圖</div>
         </button>
       </div>
     </div>
@@ -581,7 +567,7 @@ const state = {
   ratio: localStorage.getItem("collage_ratio") || "3:4",
   photos: []
 };
-const capacities = {grid2h:2,grid2v:2,grid2left:2,grid2right:2,grid2top:2,grid2bottom:2,grid4:4,grid6v:6,grid6h:6,grid8h:8,grid8v:8,grid9:9};
+const capacities = {};
 const joinCaps = {};
 
 const fileInput = document.getElementById("fileInput");
@@ -666,9 +652,7 @@ function setMode(mode, button){
   document.querySelectorAll(".layout").forEach(b=>b.classList.remove("active"));
   candidate.classList.add("active");
   updateCapacityNote();
-  const gridCap = capacities[state.layout] || 0;
-  document.getElementById("exportBtn").disabled =
-    state.photos.length===0 || (state.layout.startsWith("grid") && state.photos.length < gridCap);
+  document.getElementById("exportBtn").disabled = state.photos.length===0;
   if(state.photos.length) renderPreview();
 }
 
@@ -734,9 +718,7 @@ function renderPhotos(){
       </div>`;
     root.appendChild(chip);
   });
-  const gridCap = capacities[state.layout] || 0;
-  const gridIncomplete = state.layout.startsWith("grid") && state.photos.length < gridCap;
-  document.getElementById("exportBtn").disabled = state.photos.length===0 || gridIncomplete;
+  document.getElementById("exportBtn").disabled = state.photos.length===0;
   document.getElementById("emptyPhotoHint").classList.toggle("hidden", state.photos.length>0);
   updateCapacityNote();
 }
@@ -779,14 +761,13 @@ function resetAll(){
 }
 
 function updateCapacityNote(){
-  const cap = capacities[state.layout] || joinCaps[state.layout];
   const note = document.getElementById("capacityNote");
-  if(cap && state.layout.startsWith("grid") && state.photos.length < cap){
-    const missing = cap - state.photos.length;
-    note.textContent = `目前 ${state.photos.length} 張，還差 ${missing} 張；可點預覽中的空白格補照片。`;
-    note.classList.add("show");
-  }else if(cap && state.photos.length > cap){
-    note.textContent = `此版型使用前 ${cap} 張，目前其餘照片仍保留在照片列。`;
+  if(state.mode==="grid"){
+    if(state.photos.length){
+      note.textContent = `目前已選 ${state.photos.length} 張；佈局模式會依照片張數自動分格。`;
+    }else{
+      note.textContent = "佈局模式會依你選的照片張數自動分格，例如 5 張、8 張都可以。";
+    }
     note.classList.add("show");
   }else{
     note.classList.remove("show");
@@ -819,17 +800,71 @@ async function renderPreview(){
   }
 }
 
-function getGridConfig(layout){
-  if(layout==="grid2h") return {cols:2,rows:1,cap:2};
-  if(layout==="grid2v") return {cols:1,rows:2,cap:2};
-  if(["grid2left","grid2right","grid2top","grid2bottom"].includes(layout)) return {cols:2,rows:1,cap:2};
-  if(layout==="grid4") return {cols:2,rows:2,cap:4};
-  if(layout==="grid6v") return {cols:2,rows:3,cap:6};
-  if(layout==="grid6h") return {cols:3,rows:2,cap:6};
-  if(layout==="grid8h") return {cols:4,rows:2,cap:8};
-  if(layout==="grid8v") return {cols:2,rows:4,cap:8};
-  if(layout==="grid9") return {cols:3,rows:3,cap:9};
-  return null;
+function getAutoGrid(count, prefer="auto"){
+  count = Math.max(1, count || 1);
+  let cols, rows;
+  if(prefer === "v"){
+    cols = Math.max(1, Math.floor(Math.sqrt(count)));
+    rows = Math.ceil(count / cols);
+    while(rows < cols){ rows++; cols = Math.ceil(count / rows); }
+  }else if(prefer === "h"){
+    rows = Math.max(1, Math.floor(Math.sqrt(count)));
+    cols = Math.ceil(count / rows);
+    while(cols < rows){ cols++; rows = Math.ceil(count / cols); }
+  }else{
+    cols = Math.ceil(Math.sqrt(count));
+    rows = Math.ceil(count / cols);
+    while(cols > 1 && (cols - 1) * rows >= count) cols -= 1;
+  }
+  return {cols:Math.max(1,cols), rows:Math.max(1,rows)};
+}
+
+function buildUniformGridRects(count, width, height, gap, prefer="auto"){
+  const cfg = getAutoGrid(count, prefer);
+  const cellW = (width - gap * (cfg.cols - 1)) / cfg.cols;
+  const cellH = (height - gap * (cfg.rows - 1)) / cfg.rows;
+  const rects = [];
+  for(let i=0;i<count;i++){
+    const col = i % cfg.cols;
+    const row = Math.floor(i / cfg.cols);
+    rects.push({x:col*(cellW+gap), y:row*(cellH+gap), w:cellW, h:cellH});
+  }
+  return rects;
+}
+
+function buildFeatureRects(layout, count, width, height, gap){
+  if(count <= 1) return [{x:0,y:0,w:width,h:height}];
+  const rects = [];
+  let remainWidth = width, remainHeight = height, originX = 0, originY = 0;
+  if(layout === "gridMainLeft"){
+    const mainW = width * 0.58 - gap/2;
+    rects.push({x:0,y:0,w:mainW,h:height});
+    originX = mainW + gap; remainWidth = width - mainW - gap;
+    rects.push(...buildUniformGridRects(count-1, remainWidth, height, gap, "v").map(r=>({...r, x:r.x+originX})));
+  }else if(layout === "gridMainRight"){
+    const mainW = width * 0.58 - gap/2;
+    const sideW = width - mainW - gap;
+    rects.push(...buildUniformGridRects(count-1, sideW, height, gap, "v"));
+    rects.push({x:sideW+gap,y:0,w:mainW,h:height});
+    // move first photo rect to front
+    const main = rects.pop();
+    return [main, ...rects];
+  }else if(layout === "gridMainTop"){
+    const mainH = height * 0.58 - gap/2;
+    rects.push({x:0,y:0,w:width,h:mainH});
+    originY = mainH + gap; remainHeight = height - mainH - gap;
+    rects.push(...buildUniformGridRects(count-1, width, remainHeight, gap, "h").map(r=>({...r, y:r.y+originY})));
+  }else if(layout === "gridMainBottom"){
+    const mainH = height * 0.58 - gap/2;
+    const sideH = height - mainH - gap;
+    rects.push(...buildUniformGridRects(count-1, width, sideH, gap, "h"));
+    rects.push({x:0,y:sideH+gap,w:width,h:mainH});
+    const main = rects.pop();
+    return [main, ...rects];
+  }else{
+    return buildUniformGridRects(count, width, height, gap, "auto");
+  }
+  return rects;
 }
 
 function ratioDimensions(ratio, longSide){
@@ -869,71 +904,33 @@ async function drawCollage(canvas, preview){
       x += w + (i < photos.length-1 ? gap : 0);
     });
     width = Math.round(x);
-  }else if(["vertical3","vertical4"].includes(state.layout)){
-    const limit = state.layout==="vertical3" ? 3 : 4;
-    const used = photos.slice(0,limit);
-    width = preview ? 720 : 1800;
-    const gap = preview ? gapBase*1.5 : gapBase*4;
-    let y = 0;
-    used.forEach((p,i)=>{
-      const h = Math.max(1, Math.round(width * p.height / p.width));
-      placements.push({photo:p,x:0,y,w:width,h,mode:"contain"});
-      y += h + (i < used.length-1 ? gap : 0);
-    });
-    height = Math.round(y);
-  }else if(["horizontal3","horizontal4"].includes(state.layout)){
-    const limit = state.layout==="horizontal3" ? 3 : 4;
-    const used = photos.slice(0,limit);
-    height = preview ? 620 : 1500;
-    const gap = preview ? gapBase*1.5 : gapBase*4;
-    let x = 0;
-    used.forEach((p,i)=>{
-      const w = Math.max(1, Math.round(height * p.width / p.height));
-      placements.push({photo:p,x,y:0,w,h:height,mode:"contain"});
-      x += w + (i < used.length-1 ? gap : 0);
-    });
-    width = Math.round(x);
   }else if(state.layout.startsWith("grid")){
     const dims = ratioDimensions(state.ratio, preview ? 760 : 3000);
     width = dims.w;
     height = dims.h;
     const gap = preview ? gapBase*1.5 : gapBase*4;
-
-    if(["grid2left","grid2right","grid2top","grid2bottom"].includes(state.layout)){
-      const used = photos.slice(0,2);
-      let maps;
-      if(state.layout==="grid2left"){
-        const bigW=(width-gap)*2/3, smallW=(width-gap)/3;
-        maps=[{x:0,y:0,w:bigW,h:height},{x:bigW+gap,y:0,w:smallW,h:height}];
-      }else if(state.layout==="grid2right"){
-        const smallW=(width-gap)/3, bigW=(width-gap)*2/3;
-        maps=[{x:0,y:0,w:smallW,h:height},{x:smallW+gap,y:0,w:bigW,h:height}];
-      }else if(state.layout==="grid2top"){
-        const bigH=(height-gap)*2/3, smallH=(height-gap)/3;
-        maps=[{x:0,y:0,w:width,h:bigH},{x:0,y:bigH+gap,w:width,h:smallH}];
-      }else{
-        const smallH=(height-gap)/3, bigH=(height-gap)*2/3;
-        maps=[{x:0,y:0,w:width,h:smallH},{x:0,y:smallH+gap,w:width,h:bigH}];
-      }
-      used.forEach((p,i)=>placements.push({photo:p,...maps[i],mode:state.fit}));
+    const count = photos.length;
+    let rects;
+    if(state.layout === "gridFlowV"){
+      rects = buildUniformGridRects(count, width, height, gap, "v");
+    }else if(state.layout === "gridFlowH"){
+      rects = buildUniformGridRects(count, width, height, gap, "h");
+    }else if(["gridMainLeft","gridMainRight","gridMainTop","gridMainBottom"].includes(state.layout)){
+      rects = buildFeatureRects(state.layout, count, width, height, gap);
     }else{
-      const cfg = getGridConfig(state.layout);
-      const used = photos.slice(0,cfg.cap);
-      const cellW = (width - gap*(cfg.cols-1)) / cfg.cols;
-      const cellH = (height - gap*(cfg.rows-1)) / cfg.rows;
-      used.forEach((p,i)=>{
-        const col = i % cfg.cols;
-        const row = Math.floor(i / cfg.cols);
-        placements.push({
-          photo:p,
-          x:col*(cellW+gap),
-          y:row*(cellH+gap),
-          w:cellW,
-          h:cellH,
-          mode:state.fit
-        });
-      });
+      rects = buildUniformGridRects(count, width, height, gap, "auto");
     }
+    placements = rects.map((r,i)=>({photo:photos[i], ...r, mode:state.fit}));
+  }else{
+    width = preview ? 720 : 1800;
+    const gap = preview ? gapBase*1.5 : gapBase*4;
+    let y = 0;
+    photos.forEach((p,i)=>{
+      const h = Math.max(1, Math.round(width * p.height / p.width));
+      placements.push({photo:p,x:0,y,w:width,h,mode:"contain"});
+      y += h + (i < photos.length-1 ? gap : 0);
+    });
+    height = Math.round(y);
   }
 
   const maxCanvasSide = preview ? 1800 : 5000;
@@ -942,44 +939,6 @@ async function drawCollage(canvas, preview){
     width = Math.round(width*scaleDown);
     height = Math.round(height*scaleDown);
     placements = placements.map(p=>({...p,x:p.x*scaleDown,y:p.y*scaleDown,w:p.w*scaleDown,h:p.h*scaleDown}));
-  }
-
-
-  if(preview && state.layout.startsWith("grid")){
-    const cap = capacities[state.layout] || 0;
-    if(state.photos.length < cap){
-      const existing = placements.length;
-      if(["grid2left","grid2right","grid2top","grid2bottom"].includes(state.layout)){
-        // Recreate the second missing box from the same layout geometry.
-        const all = [];
-        const gap = state.gap*1.5*scaleDown;
-        if(state.layout==="grid2left"){
-          const bigW=(width-gap)*2/3, smallW=(width-gap)/3;
-          all.push({x:0,y:0,w:bigW,h:height},{x:bigW+gap,y:0,w:smallW,h:height});
-        }else if(state.layout==="grid2right"){
-          const smallW=(width-gap)/3, bigW=(width-gap)*2/3;
-          all.push({x:0,y:0,w:smallW,h:height},{x:smallW+gap,y:0,w:bigW,h:height});
-        }else if(state.layout==="grid2top"){
-          const bigH=(height-gap)*2/3, smallH=(height-gap)/3;
-          all.push({x:0,y:0,w:width,h:bigH},{x:0,y:bigH+gap,w:width,h:smallH});
-        }else{
-          const smallH=(height-gap)/3, bigH=(height-gap)*2/3;
-          all.push({x:0,y:0,w:width,h:smallH},{x:0,y:smallH+gap,w:width,h:bigH});
-        }
-        previewEmptyBoxes = all.slice(existing);
-      }else{
-        const cfg = getGridConfig(state.layout);
-        if(cfg){
-          const gap = state.gap*1.5*scaleDown;
-          const cellW=(width-gap*(cfg.cols-1))/cfg.cols;
-          const cellH=(height-gap*(cfg.rows-1))/cfg.rows;
-          for(let i=existing;i<cfg.cap;i++){
-            const col=i%cfg.cols,row=Math.floor(i/cfg.cols);
-            previewEmptyBoxes.push({x:col*(cellW+gap),y:row*(cellH+gap),w:cellW,h:cellH});
-          }
-        }
-      }
-    }
   }
 
   canvas.width = Math.max(1,Math.round(width));
@@ -991,10 +950,10 @@ async function drawCollage(canvas, preview){
   ctx.imageSmoothingQuality = "high";
 
   const radius = (preview ? radiusBase*1.5 : radiusBase*4) * scaleDown;
-  placements.forEach(p=>{
+  placements.forEach((p, order)=>{
     drawImageInBox(ctx,p.photo,p.x,p.y,p.w,p.h,p.mode,radius);
     if(preview){
-      previewHitboxes.push({index:state.photos.indexOf(p.photo),x:p.x,y:p.y,w:p.w,h:p.h});
+      previewHitboxes.push({index:order,x:p.x,y:p.y,w:p.w,h:p.h});
     }
   });
 }
@@ -1083,24 +1042,7 @@ function buildGridOverlay(){
     });
     gridOverlay.appendChild(btn);
   });
-
-  previewEmptyBoxes.forEach((box, offset)=>{
-    const slot = document.createElement("button");
-    slot.type = "button";
-    slot.className = "empty-grid-slot";
-    slot.style.left = `${(box.x/previewCanvas.width)*100}%`;
-    slot.style.top = `${(box.y/previewCanvas.height)*100}%`;
-    slot.style.width = `${(box.w/previewCanvas.width)*100}%`;
-    slot.style.height = `${(box.h/previewCanvas.height)*100}%`;
-    slot.innerHTML = `<span>＋</span>補照片`;
-    slot.addEventListener("click",()=>{
-      fileInput.click();
-    });
-    gridOverlay.appendChild(slot);
-  });
 }
-
-
 
 let lockedScrollY = 0;
 let editorIsOpen = false;
@@ -1391,11 +1333,6 @@ editStage.addEventListener("wheel",e=>{
 
 async function exportJpg(){
   if(!state.photos.length) return;
-  const cap = capacities[state.layout] || 0;
-  if(state.layout.startsWith("grid") && state.photos.length < cap){
-    showToast(`還差 ${cap-state.photos.length} 張照片`);
-    return;
-  }
   const btn = document.getElementById("exportBtn");
   btn.disabled = true;
   btn.textContent = "正在輸出…";
@@ -1429,8 +1366,7 @@ async function exportJpg(){
     console.error(err);
     showToast("輸出失敗，請重試或減少照片");
   }finally{
-    const cap2=capacities[state.layout]||0;
-    btn.disabled=state.photos.length===0 || (state.layout.startsWith("grid") && state.photos.length<cap2);
+    btn.disabled=state.photos.length===0;
     btn.textContent="輸出／分享 JPG";
   }
 }
@@ -1447,7 +1383,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const validRatios = ["3:4","1:1","4:3","2:3","3:2","16:9","9:16","3:5"];
   if(!validRatios.includes(state.ratio)){ state.ratio="3:4"; localStorage.setItem("collage_ratio",state.ratio); }
   const validJoinLayouts = ["vertical","horizontal"];
+  const validGridLayouts = ["gridAuto","gridFlowV","gridFlowH","gridMainLeft","gridMainTop","gridMainRight","gridMainBottom"];
   if(state.mode==="join" && !validJoinLayouts.includes(state.layout)){ state.layout="vertical"; }
+  if(state.mode==="grid" && !validGridLayouts.includes(state.layout)){ state.layout="gridAuto"; }
   document.getElementById("gapRange").value = state.gap;
   document.getElementById("gapValue").textContent = state.gap;
   document.getElementById("roundRange").value = state.radius;
