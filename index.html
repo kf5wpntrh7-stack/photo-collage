@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>圖片拼接網頁版 v6.4</title>
+<title>圖片拼接網頁版 v6.6</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -404,7 +404,7 @@ body.editor-locked{
   <div class="header-row">
     <div>
       <h1>🖼️ 圖片拼接網頁版</h1>
-      <div class="subtitle">v6.4・編輯畫面可旋轉照片</div>
+      <div class="subtitle">v6.6・動態滿版佈局＋照片旋轉</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -952,23 +952,28 @@ function buildMosaicRects(count,width,height,gap,variant=1){
 
 function availableGridLayouts(count){
   if(count <= 1) return [["gridAuto","單張滿版"]];
-  const list=[
-    ["gridAuto","平均排列"],
-    ["gridStripV","直向並排"],
-    ["gridStripH","橫向並排"],
+  const list=[["gridAuto","平均排列"]];
+
+  // 規整的上下左右分格：依照片張數動態提供，不會留下空白格。
+  if(count >= 4) list.push(["gridRows2","上下兩排"],["gridCols2","左右兩欄"]);
+  if(count >= 6) list.push(["gridRows3","上下三排"],["gridCols3","左右三欄"]);
+
+  list.push(
     ["gridMainLeft","左主圖"],
     ["gridMainRight","右主圖"],
     ["gridMainTop","上主圖"],
     ["gridMainBottom","下主圖"],
     ["gridMosaic1","上下變化"],
     ["gridMosaic2","左右變化"]
-  ];
+  );
   return list;
 }
 
 function getGridRects(layout,count,width,height,gap){
-  if(layout==="gridStripV") return buildStripRects(count,width,height,gap,"vertical");
-  if(layout==="gridStripH") return buildStripRects(count,width,height,gap,"horizontal");
+  if(layout==="gridRows2") return buildDenseRowRects(count,width,height,gap,2);
+  if(layout==="gridCols2") return buildDenseColumnRects(count,width,height,gap,2);
+  if(layout==="gridRows3") return buildDenseRowRects(count,width,height,gap,3);
+  if(layout==="gridCols3") return buildDenseColumnRects(count,width,height,gap,3);
   if(["gridMainLeft","gridMainRight","gridMainTop","gridMainBottom"].includes(layout)) return buildFeatureRects(layout,count,width,height,gap);
   if(layout==="gridMosaic1") return buildMosaicRects(count,width,height,gap,1);
   if(layout==="gridMosaic2") return buildMosaicRects(count,width,height,gap,2);
@@ -1550,7 +1555,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const validRatios = ["3:4","1:1","4:3","2:3","3:2","16:9","9:16","3:5"];
   if(!validRatios.includes(state.ratio)){ state.ratio="3:4"; localStorage.setItem("collage_ratio",state.ratio); }
   const validJoinLayouts = ["vertical","horizontal"];
-  const validGridLayouts = ["gridAuto","gridStripV","gridStripH","gridMainLeft","gridMainTop","gridMainRight","gridMainBottom","gridMosaic1","gridMosaic2"];
+  const validGridLayouts = ["gridAuto","gridRows2","gridCols2","gridRows3","gridCols3","gridMainLeft","gridMainTop","gridMainRight","gridMainBottom","gridMosaic1","gridMosaic2"];
   if(state.mode==="join" && !validJoinLayouts.includes(state.layout)){ state.layout="vertical"; }
   if(state.mode==="grid" && !validGridLayouts.includes(state.layout)){ state.layout="gridAuto"; }
   document.getElementById("gapRange").value = state.gap;
