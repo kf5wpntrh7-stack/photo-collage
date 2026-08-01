@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>圖片拼接網頁版 v6.3</title>
+<title>圖片拼接網頁版 v6.4</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -276,6 +276,7 @@ main{padding-top:10px}
 }
 .edit-actions,.zoom-buttons{width:100%;max-width:none}
 .zoom-buttons button,.edit-actions .soft{background:#263743;color:#fff}
+.rotate-editor-buttons button{background:#324a5c;color:#fff}
 .edit-actions .primary{background:#3b82f6;color:#fff}
 body.editor-locked{
   position:fixed!important;
@@ -403,7 +404,7 @@ body.editor-locked{
   <div class="header-row">
     <div>
       <h1>🖼️ 圖片拼接網頁版</h1>
-      <div class="subtitle">v6.3・佈局比例＋不限張數拼接</div>
+      <div class="subtitle">v6.4・編輯畫面可旋轉照片</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -527,6 +528,10 @@ body.editor-locked{
     <div class="zoom-buttons">
       <button type="button" onclick="editorZoomBy(-0.15)">－ 縮小</button>
       <button type="button" onclick="editorZoomBy(0.15)">＋ 放大</button>
+    </div>
+    <div class="zoom-buttons rotate-editor-buttons">
+      <button type="button" onclick="editorRotateBy(-90)">↶ 左轉 90°</button>
+      <button type="button" onclick="editorRotateBy(90)">↷ 右轉 90°</button>
     </div>
     <div class="edit-actions">
       <button class="soft" onclick="resetEditor()">重設</button>
@@ -1222,6 +1227,50 @@ function updateEditorStage(){
   img.style.width = (editorBase.ow * editorBase.baseScale) + "px";
   img.style.height = (editorBase.oh * editorBase.baseScale) + "px";
   img.style.transform = `translate3d(calc(-50% + ${editorDraft.panX}px), calc(-50% + ${editorDraft.panY}px), 0) scale(${editorDraft.zoom})`;
+}
+
+async function editorRotateBy(delta){
+  if(editorPhotoIndex < 0) return;
+  const photo = state.photos[editorPhotoIndex];
+  if(!photo) return;
+
+  photo.rotation = ((photo.rotation || 0) + delta + 360) % 360;
+  if(Math.abs(delta) % 180 === 90){
+    const tmp = photo.width;
+    photo.width = photo.height;
+    photo.height = tmp;
+  }
+  photo.focusX = 0.5;
+  photo.focusY = 0.5;
+  photo.zoom = 1;
+  editorDraft = {x:0.5,y:0.5,zoom:1.12,panX:0,panY:0};
+
+  const stage = document.getElementById("editStage");
+  const img = document.getElementById("editImage");
+  stage.classList.add("loading");
+  document.getElementById("gestureStatus").textContent = delta < 0 ? "向左旋轉中…" : "向右旋轉中…";
+  img.removeAttribute("src");
+
+  try{
+    if(editorTempUrl) URL.revokeObjectURL(editorTempUrl);
+    editorTempUrl = await createEditorPreviewUrl(photo);
+    await new Promise((resolve,reject)=>{
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = editorTempUrl;
+    });
+    editorBase = null;
+    initializeEditorPosition();
+    updateEditorStage();
+    renderPhotos();
+    await renderPreview();
+    document.getElementById("gestureStatus").textContent = delta < 0 ? "已向左旋轉 90°" : "已向右旋轉 90°";
+  }catch(error){
+    console.error(error);
+    document.getElementById("gestureStatus").textContent = "旋轉失敗，請再試一次";
+  }finally{
+    stage.classList.remove("loading");
+  }
 }
 
 function editorZoomBy(delta){
