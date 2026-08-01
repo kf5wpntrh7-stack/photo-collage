@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>圖片拼接網頁版 v6.6</title>
+<title>圖片拼接網頁版 v6.7</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -151,7 +151,7 @@ canvas{display:block;width:100%;height:auto;background:#fff;box-shadow:0 5px 18p
 .preview-hint{font-size:12px;color:var(--muted);text-align:center;margin-top:8px}
 .preview-hint strong{color:var(--navy)}
 .btn{border:0;border-radius:12px;padding:12px 10px;font-weight:800;background:var(--soft);color:var(--text)}
-.btn.primary{background:var(--navy);color:#fff}
+.btn.primary{background:var(--navy);color:#fff;pointer-events:auto;touch-action:manipulation}
 .btn:disabled{opacity:.45}
 .full-btn{width:100%}
 
@@ -404,7 +404,7 @@ body.editor-locked{
   <div class="header-row">
     <div>
       <h1>🖼️ 圖片拼接網頁版</h1>
-      <div class="subtitle">v6.6・動態滿版佈局＋照片旋轉</div>
+      <div class="subtitle">v6.7・修正 JPG 輸出按鈕</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -511,7 +511,7 @@ body.editor-locked{
 
 <div class="bottom">
   <div class="bottom-inner single">
-    <button id="exportBtn" class="btn primary" onclick="exportJpg()" disabled>輸出／分享 JPG</button>
+    <button id="exportBtn" class="btn primary" onclick="exportJpg()">輸出／分享 JPG</button>
   </div>
 </div>
 
@@ -600,8 +600,9 @@ fileInput.addEventListener("change", async (event)=>{
   fileInput.value = "";
   renderPhotos();
   if(state.mode==="grid" && !state.layout.startsWith("grid")){
+    renderDynamicLayouts();
     const firstGrid = document.querySelector("#gridLayouts .layout");
-    setLayout(firstGrid.dataset.layout, firstGrid);
+    if(firstGrid) setLayout(firstGrid.dataset.layout, firstGrid);
   }
   await renderPreview();
 });
@@ -642,7 +643,7 @@ function setMode(mode, button){
     candidate.classList.add("active");
   }
   updateCapacityNote();
-  document.getElementById("exportBtn").disabled = state.photos.length===0;
+  syncExportButton();
   if(state.photos.length) renderPreview();
 }
 
@@ -709,7 +710,7 @@ function renderPhotos(){
       </div>`;
     root.appendChild(chip);
   });
-  document.getElementById("exportBtn").disabled = state.photos.length===0;
+  syncExportButton();
   document.getElementById("emptyPhotoHint").classList.toggle("hidden", state.photos.length>0);
   renderDynamicLayouts();
   updateCapacityNote();
@@ -1503,10 +1504,25 @@ editStage.addEventListener("wheel",e=>{
   editorZoomBy(e.deltaY<0 ? .08 : -.08);
 },{passive:false});
 
-async function exportJpg(){
-  if(!state.photos.length) return;
+function syncExportButton(){
   const btn = document.getElementById("exportBtn");
+  if(!btn || btn.dataset.busy === "1") return;
+  btn.disabled = false;
+  btn.setAttribute("aria-disabled", "false");
+  btn.textContent = state.photos.length ? "輸出／分享 JPG" : "輸出／分享 JPG";
+}
+
+async function exportJpg(){
+  const btn = document.getElementById("exportBtn");
+  if(!state.photos.length){
+    showToast("請先加入照片");
+    syncExportButton();
+    return;
+  }
+  if(btn.dataset.busy === "1") return;
+  btn.dataset.busy = "1";
   btn.disabled = true;
+  btn.setAttribute("aria-disabled", "true");
   btn.textContent = "正在輸出…";
   try{
     const exportCanvas = document.createElement("canvas");
@@ -1538,8 +1554,11 @@ async function exportJpg(){
     console.error(err);
     showToast("輸出失敗，請重試或減少照片");
   }finally{
-    btn.disabled=state.photos.length===0;
+    btn.dataset.busy = "0";
+    btn.disabled = false;
+    btn.setAttribute("aria-disabled", "false");
     btn.textContent="輸出／分享 JPG";
+    syncExportButton();
   }
 }
 
