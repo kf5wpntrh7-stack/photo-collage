@@ -394,14 +394,8 @@ body.editor-locked{
   .ratio-btn{min-width:0}
 }
 
-.dynamic-layouts{display:flex;gap:8px;overflow-x:auto;padding:8px 12px 12px;scrollbar-width:none}
-.dynamic-layouts::-webkit-scrollbar{display:none}
-.dynamic-layout-btn{flex:0 0 94px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:7px 5px;color:var(--text)}
-.dynamic-layout-btn.active{background:var(--navy);border-color:var(--navy);color:#fff}
-.layout-mini{position:relative;width:54px;height:44px;margin:0 auto 6px;border:1px solid currentColor;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.3)}
-.layout-mini-cell{position:absolute;background:currentColor;opacity:.72;border-radius:1px}
-.dynamic-layout-label{font-size:11px;font-weight:800;white-space:nowrap}
-@media(min-width:980px){.dynamic-layouts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}.dynamic-layout-btn{width:100%;min-width:0;flex:none}}
+.dynamic-layout-thumb{width:42px;height:34px;margin:0 auto 5px;display:block}
+.dynamic-layout-thumb rect{fill:currentColor;opacity:.84}
 </style>
 </head>
 <body>
@@ -409,7 +403,7 @@ body.editor-locked{
   <div class="header-row">
     <div>
       <h1>🖼️ 圖片拼接網頁版</h1>
-      <div class="subtitle">6.3版本</div>
+      <div class="subtitle">v6.3・佈局比例＋不限張數拼接</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -470,7 +464,7 @@ body.editor-locked{
         <div class="layout-section-label">格子版型</div>
         <div class="compact-note" style="padding:4px 0 0">佈局會依你目前選的照片張數自動分格，5 張、8 張都可以。</div>
       </div>
-      <div id="dynamicLayouts" class="dynamic-layouts"></div>
+      <div id="dynamicLayoutOptions" class="layout-scroll"></div>
     </div>
 <div id="capacityNote" class="capacity"></div>
   </section>
@@ -556,17 +550,6 @@ const state = {
 };
 const capacities = {};
 const joinCaps = {};
-const layoutVariants = [
-  {id:"gridAuto",label:"平均排列",type:"auto"},
-  {id:"gridRows",label:"橫向分排",type:"rows"},
-  {id:"gridCols",label:"直向分排",type:"cols"},
-  {id:"gridMainLeft",label:"左側主圖",type:"mainLeft"},
-  {id:"gridMainRight",label:"右側主圖",type:"mainRight"},
-  {id:"gridMainTop",label:"上方主圖",type:"mainTop"},
-  {id:"gridMainBottom",label:"下方主圖",type:"mainBottom"},
-  {id:"gridFirstWide",label:"首圖橫幅",type:"firstWide"},
-  {id:"gridFirstTall",label:"首圖直幅",type:"firstTall"}
-];
 
 const fileInput = document.getElementById("fileInput");
 const previewCanvas = document.getElementById("previewCanvas");
@@ -630,56 +613,6 @@ function loadImage(file){
 
 
 
-function getLayoutRects(layout, count, width, height, gap){
-  count=Math.max(1,count);
-  if(layout==="gridRows") return buildUniformGridRects(count,width,height,gap,"h");
-  if(layout==="gridCols") return buildUniformGridRects(count,width,height,gap,"v");
-  if(["gridMainLeft","gridMainRight","gridMainTop","gridMainBottom"].includes(layout)) return buildFeatureRects(layout,count,width,height,gap);
-  if(layout==="gridFirstWide"){
-    if(count===1) return [{x:0,y:0,w:width,h:height}];
-    const h1=height*.42-gap/2;
-    return [{x:0,y:0,w:width,h:h1},...buildUniformGridRects(count-1,width,height-h1-gap,gap,"h").map(r=>({...r,y:r.y+h1+gap}))];
-  }
-  if(layout==="gridFirstTall"){
-    if(count===1) return [{x:0,y:0,w:width,h:height}];
-    const w1=width*.42-gap/2;
-    return [{x:0,y:0,w:w1,h:height},...buildUniformGridRects(count-1,width-w1-gap,height,gap,"v").map(r=>({...r,x:r.x+w1+gap}))];
-  }
-  return buildUniformGridRects(count,width,height,gap,"auto");
-}
-
-function renderDynamicLayouts(){
-  const root=document.getElementById("dynamicLayouts");
-  if(!root) return;
-  const count=Math.max(1,state.photos.length);
-  const dims=ratioDimensions(state.ratio,100);
-  const scale=Math.min(54/dims.w,44/dims.h);
-  const w=dims.w*scale,h=dims.h*scale;
-  root.innerHTML="";
-  layoutVariants.forEach(v=>{
-    const btn=document.createElement("button");
-    btn.type="button";
-    btn.className="dynamic-layout-btn"+(state.layout===v.id?" active":"");
-    btn.dataset.layout=v.id;
-    const mini=document.createElement("div");
-    mini.className="layout-mini";
-    mini.style.width=w+"px"; mini.style.height=h+"px";
-    const rects=getLayoutRects(v.id,count,w,h,1.5);
-    rects.forEach(r=>{
-      const cell=document.createElement("span");
-      cell.className="layout-mini-cell";
-      cell.style.left=(r.x/w*100)+"%"; cell.style.top=(r.y/h*100)+"%";
-      cell.style.width=(r.w/w*100)+"%"; cell.style.height=(r.h/h*100)+"%";
-      mini.appendChild(cell);
-    });
-    const label=document.createElement("div");
-    label.className="dynamic-layout-label"; label.textContent=v.label;
-    btn.append(mini,label);
-    btn.onclick=()=>setLayout(v.id,btn);
-    root.appendChild(btn);
-  });
-}
-
 function setMode(mode, button){
   state.mode = mode;
   localStorage.setItem("collage_mode", mode);
@@ -687,18 +620,22 @@ function setMode(mode, button){
   if(button) button.classList.add("active");
   document.getElementById("joinLayouts").classList.toggle("active", mode==="join");
   document.getElementById("gridLayouts").classList.toggle("active", mode==="grid");
+  if(mode==="grid") renderDynamicLayouts();
   if(mode==="grid" && state.fit!=="cover") setFit("cover");
-  if(mode==="join"){
-    const activePanel=document.getElementById("joinLayouts");
-    let candidate=activePanel.querySelector(`.layout[data-layout="${state.layout}"]`) || activePanel.querySelector(".layout");
-    state.layout=candidate.dataset.layout;
+  const activePanel = mode==="join" ? document.getElementById("joinLayouts") : document.getElementById("gridLayouts");
+  let candidate = activePanel.querySelector(`.layout[data-layout="${state.layout}"]`);
+  if(!candidate) candidate = activePanel.querySelector(".layout");
+  if(!candidate){
+    state.layout = mode==="join" ? "vertical" : "gridAuto";
+    renderDynamicLayouts();
+    candidate = activePanel.querySelector(`.layout[data-layout="${state.layout}"]`);
+  }
+  if(candidate){
+    state.layout = candidate.dataset.layout;
+    localStorage.setItem("collage_layout", state.layout);
     document.querySelectorAll(".layout").forEach(b=>b.classList.remove("active"));
     candidate.classList.add("active");
-  }else{
-    if(!layoutVariants.some(v=>v.id===state.layout)) state.layout="gridAuto";
-    renderDynamicLayouts();
   }
-  localStorage.setItem("collage_layout", state.layout);
   updateCapacityNote();
   document.getElementById("exportBtn").disabled = state.photos.length===0;
   if(state.photos.length) renderPreview();
@@ -707,7 +644,7 @@ function setMode(mode, button){
 function setLayout(layout, button){
   state.layout = layout;
   localStorage.setItem("collage_layout", layout);
-  document.querySelectorAll(".layout,.dynamic-layout-btn").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".layout").forEach(b=>b.classList.remove("active"));
   if(button) button.classList.add("active");
   updateCapacityNote();
   if(state.photos.length) renderPreview();
@@ -727,7 +664,7 @@ function setRatio(ratio, button){
   localStorage.setItem("collage_ratio", ratio);
   document.querySelectorAll(".ratio-btn").forEach(b=>b.classList.remove("active"));
   if(button) button.classList.add("active");
-  if(state.mode==="grid") renderDynamicLayouts();
+  renderDynamicLayouts();
   schedulePreview();
 }
 
@@ -769,7 +706,7 @@ function renderPhotos(){
   });
   document.getElementById("exportBtn").disabled = state.photos.length===0;
   document.getElementById("emptyPhotoHint").classList.toggle("hidden", state.photos.length>0);
-  if(state.mode==="grid") renderDynamicLayouts();
+  renderDynamicLayouts();
   updateCapacityNote();
 }
 
@@ -814,9 +751,9 @@ function updateCapacityNote(){
   const note = document.getElementById("capacityNote");
   if(state.mode==="grid"){
     if(state.photos.length){
-      note.textContent = `目前已選 ${state.photos.length} 張；佈局模式會依照片張數提供多種版型。`;
+      note.textContent = `目前已選 ${state.photos.length} 張；佈局模式會依照片張數自動分格。`;
     }else{
-      note.textContent = "佈局模式會依你選的照片張數提供多種版型，例如 5 張、8 張都可以。";
+      note.textContent = "佈局模式會依你選的照片張數自動分格，例如 5 張、8 張都可以。";
     }
     note.classList.add("show");
   }else{
@@ -856,11 +793,9 @@ function getAutoGrid(count, prefer="auto"){
   if(prefer === "v"){
     cols = Math.max(1, Math.floor(Math.sqrt(count)));
     rows = Math.ceil(count / cols);
-    while(rows < cols){ rows++; cols = Math.ceil(count / rows); }
   }else if(prefer === "h"){
     rows = Math.max(1, Math.floor(Math.sqrt(count)));
     cols = Math.ceil(count / rows);
-    while(cols < rows){ cols++; rows = Math.ceil(count / cols); }
   }else{
     cols = Math.ceil(Math.sqrt(count));
     rows = Math.ceil(count / cols);
@@ -882,39 +817,105 @@ function buildUniformGridRects(count, width, height, gap, prefer="auto"){
   return rects;
 }
 
-function buildFeatureRects(layout, count, width, height, gap){
-  if(count <= 1) return [{x:0,y:0,w:width,h:height}];
-  const rects = [];
-  let remainWidth = width, remainHeight = height, originX = 0, originY = 0;
-  if(layout === "gridMainLeft"){
-    const mainW = width * 0.58 - gap/2;
-    rects.push({x:0,y:0,w:mainW,h:height});
-    originX = mainW + gap; remainWidth = width - mainW - gap;
-    rects.push(...buildUniformGridRects(count-1, remainWidth, height, gap, "v").map(r=>({...r, x:r.x+originX})));
-  }else if(layout === "gridMainRight"){
-    const mainW = width * 0.58 - gap/2;
-    const sideW = width - mainW - gap;
-    rects.push(...buildUniformGridRects(count-1, sideW, height, gap, "v"));
-    rects.push({x:sideW+gap,y:0,w:mainW,h:height});
-    // move first photo rect to front
-    const main = rects.pop();
-    return [main, ...rects];
-  }else if(layout === "gridMainTop"){
-    const mainH = height * 0.58 - gap/2;
-    rects.push({x:0,y:0,w:width,h:mainH});
-    originY = mainH + gap; remainHeight = height - mainH - gap;
-    rects.push(...buildUniformGridRects(count-1, width, remainHeight, gap, "h").map(r=>({...r, y:r.y+originY})));
-  }else if(layout === "gridMainBottom"){
-    const mainH = height * 0.58 - gap/2;
-    const sideH = height - mainH - gap;
-    rects.push(...buildUniformGridRects(count-1, width, sideH, gap, "h"));
-    rects.push({x:0,y:sideH+gap,w:width,h:mainH});
-    const main = rects.pop();
-    return [main, ...rects];
+function buildStripRects(count,width,height,gap,direction){
+  const rects=[];
+  if(direction==="vertical"){
+    const w=(width-gap*(count-1))/count;
+    for(let i=0;i<count;i++) rects.push({x:i*(w+gap),y:0,w,h:height});
   }else{
-    return buildUniformGridRects(count, width, height, gap, "auto");
+    const h=(height-gap*(count-1))/count;
+    for(let i=0;i<count;i++) rects.push({x:0,y:i*(h+gap),w:width,h});
   }
   return rects;
+}
+
+function buildFeatureRects(layout, count, width, height, gap){
+  if(count <= 1) return [{x:0,y:0,w:width,h:height}];
+  if(layout === "gridMainLeft"){
+    const mainW = width * 0.56 - gap/2;
+    return [{x:0,y:0,w:mainW,h:height}, ...buildUniformGridRects(count-1,width-mainW-gap,height,gap,"v").map(r=>({...r,x:r.x+mainW+gap}))];
+  }
+  if(layout === "gridMainRight"){
+    const mainW = width * 0.56 - gap/2;
+    const sideW=width-mainW-gap;
+    return [{x:sideW+gap,y:0,w:mainW,h:height}, ...buildUniformGridRects(count-1,sideW,height,gap,"v")];
+  }
+  if(layout === "gridMainTop"){
+    const mainH = height * 0.56 - gap/2;
+    return [{x:0,y:0,w:width,h:mainH}, ...buildUniformGridRects(count-1,width,height-mainH-gap,gap,"h").map(r=>({...r,y:r.y+mainH+gap}))];
+  }
+  if(layout === "gridMainBottom"){
+    const mainH = height * 0.56 - gap/2;
+    const sideH=height-mainH-gap;
+    return [{x:0,y:sideH+gap,w:width,h:mainH}, ...buildUniformGridRects(count-1,width,sideH,gap,"h")];
+  }
+  return buildUniformGridRects(count,width,height,gap,"auto");
+}
+
+function buildMosaicRects(count,width,height,gap,variant=1){
+  if(count<=2) return buildUniformGridRects(count,width,height,gap,"auto");
+  const rects=[];
+  if(variant===1){
+    const topCount=Math.ceil(count/2);
+    const bottomCount=count-topCount;
+    const topH=height*0.58-gap/2;
+    rects.push(...buildUniformGridRects(topCount,width,topH,gap,"h"));
+    if(bottomCount) rects.push(...buildUniformGridRects(bottomCount,width,height-topH-gap,gap,"h").map(r=>({...r,y:r.y+topH+gap})));
+  }else{
+    const leftCount=Math.ceil(count/2);
+    const rightCount=count-leftCount;
+    const leftW=width*0.58-gap/2;
+    rects.push(...buildUniformGridRects(leftCount,leftW,height,gap,"v"));
+    if(rightCount) rects.push(...buildUniformGridRects(rightCount,width-leftW-gap,height,gap,"v").map(r=>({...r,x:r.x+leftW+gap})));
+  }
+  return rects;
+}
+
+function availableGridLayouts(count){
+  const list=[
+    ["gridAuto","平均排列"],
+    ["gridMainLeft","左主圖"],
+    ["gridMainRight","右主圖"],
+    ["gridMainTop","上主圖"],
+    ["gridMainBottom","下主圖"],
+    ["gridMosaic1","上下變化"],
+    ["gridMosaic2","左右變化"]
+  ];
+  if(count<=6){ list.splice(1,0,["gridStripV","直向並排"],["gridStripH","橫向並排"]); }
+  return list;
+}
+
+function getGridRects(layout,count,width,height,gap){
+  if(layout==="gridStripV") return buildStripRects(count,width,height,gap,"vertical");
+  if(layout==="gridStripH") return buildStripRects(count,width,height,gap,"horizontal");
+  if(["gridMainLeft","gridMainRight","gridMainTop","gridMainBottom"].includes(layout)) return buildFeatureRects(layout,count,width,height,gap);
+  if(layout==="gridMosaic1") return buildMosaicRects(count,width,height,gap,1);
+  if(layout==="gridMosaic2") return buildMosaicRects(count,width,height,gap,2);
+  return buildUniformGridRects(count,width,height,gap,"auto");
+}
+
+function layoutThumbSvg(layout,count){
+  const rects=getGridRects(layout,Math.max(1,count),100,76,3);
+  const parts=rects.map(r=>`<rect x="${r.x.toFixed(1)}" y="${r.y.toFixed(1)}" width="${Math.max(1,r.w).toFixed(1)}" height="${Math.max(1,r.h).toFixed(1)}" rx="2"/>`).join("");
+  return `<svg class="dynamic-layout-thumb" viewBox="0 0 100 76" aria-hidden="true">${parts}</svg>`;
+}
+
+function renderDynamicLayouts(){
+  const root=document.getElementById("dynamicLayoutOptions");
+  if(!root) return;
+  const count=Math.max(1,state.photos.length);
+  const layouts=availableGridLayouts(count);
+  if(!layouts.some(([id])=>id===state.layout)) state.layout=layouts[0][0];
+  root.innerHTML="";
+  layouts.forEach(([id,label])=>{
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="layout"+(state.layout===id?" active":"");
+    btn.dataset.layout=id;
+    btn.innerHTML=layoutThumbSvg(id,count)+`<div class="layout-label">${label}</div>`;
+    btn.addEventListener("click",()=>setLayout(id,btn));
+    root.appendChild(btn);
+  });
 }
 
 function ratioDimensions(ratio, longSide){
@@ -960,7 +961,7 @@ async function drawCollage(canvas, preview){
     height = dims.h;
     const gap = preview ? gapBase*1.5 : gapBase*4;
     const count = photos.length;
-    const rects = getLayoutRects(state.layout, count, width, height, gap);
+    const rects = getGridRects(state.layout,count,width,height,gap);
     placements = rects.map((r,i)=>({photo:photos[i], ...r, mode:state.fit}));
   }else{
     width = preview ? 720 : 1800;
@@ -1424,7 +1425,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const validRatios = ["3:4","1:1","4:3","2:3","3:2","16:9","9:16","3:5"];
   if(!validRatios.includes(state.ratio)){ state.ratio="3:4"; localStorage.setItem("collage_ratio",state.ratio); }
   const validJoinLayouts = ["vertical","horizontal"];
-  const validGridLayouts = layoutVariants.map(v=>v.id);
+  const validGridLayouts = ["gridAuto","gridStripV","gridStripH","gridMainLeft","gridMainTop","gridMainRight","gridMainBottom","gridMosaic1","gridMosaic2"];
   if(state.mode==="join" && !validJoinLayouts.includes(state.layout)){ state.layout="vertical"; }
   if(state.mode==="grid" && !validGridLayouts.includes(state.layout)){ state.layout="gridAuto"; }
   document.getElementById("gapRange").value = state.gap;
@@ -1433,6 +1434,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   document.getElementById("roundValue").textContent = state.radius;
   setFit(state.fit);
   document.querySelectorAll(".ratio-btn").forEach(b=>b.classList.toggle("active", b.dataset.ratio===state.ratio));
+  renderDynamicLayouts();
   const modeButton = document.querySelector(`.mode-tab[data-mode="${state.mode}"]`) || document.querySelector('.mode-tab[data-mode="join"]');
   setMode(modeButton.dataset.mode, modeButton);
   renderPhotos();
