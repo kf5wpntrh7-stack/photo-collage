@@ -792,34 +792,108 @@ async function renderPreview(){
   }
 }
 
-function getAutoGrid(count, prefer="auto"){
-  count = Math.max(1, count || 1);
-  let cols, rows;
-  if(prefer === "v"){
-    cols = Math.max(1, Math.floor(Math.sqrt(count)));
-    rows = Math.ceil(count / cols);
-  }else if(prefer === "h"){
-    rows = Math.max(1, Math.floor(Math.sqrt(count)));
-    cols = Math.ceil(count / rows);
-  }else{
-    cols = Math.ceil(Math.sqrt(count));
-    rows = Math.ceil(count / cols);
-    while(cols > 1 && (cols - 1) * rows >= count) cols -= 1;
+function splitEvenly(total, parts){
+  parts = Math.max(1, Math.min(total, parts));
+  const base = Math.floor(total / parts);
+  const extra = total % parts;
+  return Array.from({length: parts}, (_, i) => base + (i < extra ? 1 : 0));
+}
+
+function buildDenseRowRects(count, width, height, gap, rows){
+  rows = Math.max(1, Math.min(count, rows));
+  const counts = splitEvenly(count, rows);
+  const rowH = (height - gap * (rows - 1)) / rows;
+  const rects = [];
+  let y = 0;
+  counts.forEach((items, rowIndex)=>{
+    const cellW = (width - gap * (items - 1)) / items;
+    let x = 0;
+    for(let i=0;i<items;i++){
+      rects.push({x,y,w:cellW,h:rowH});
+      x += cellW + gap;
+    }
+    if(rowIndex < rows - 1) y += rowH + gap;
+  });
+  return rects;
+}
+
+function buildDenseColumnRects(count, width, height, gap, cols){
+  cols = Math.max(1, Math.min(count, cols));
+  const counts = splitEvenly(count, cols);
+  const colW = (width - gap * (cols - 1)) / cols;
+  const rects = [];
+  let x = 0;
+  counts.forEach((items, colIndex)=>{
+    const cellH = (height - gap * (items - 1)) / items;
+    let y = 0;
+    for(let i=0;i<items;i++){
+      rects.push({x,y,w:colW,h:cellH});
+      y += cellH + gap;
+    }
+    if(colIndex < cols - 1) x += colW + gap;
+  });
+  return rects;
+}
+
+function scoreRowLayout(count, width, height, gap, rows){
+  const counts = splitEvenly(count, rows);
+  const rowH = (height - gap * (rows - 1)) / rows;
+  const maxItems = Math.max(...counts);
+  const minItems = Math.min(...counts);
+  const maxW = (width - gap * (maxItems - 1)) / maxItems;
+  const minW = (width - gap * (minItems - 1)) / minItems;
+  const aspectScore = Math.abs((maxW / rowH) - 1) + Math.abs((minW / rowH) - 1) * 0.5;
+  const balanceScore = (maxItems - minItems) * 0.08;
+  return aspectScore + balanceScore;
+}
+
+function scoreColumnLayout(count, width, height, gap, cols){
+  const counts = splitEvenly(count, cols);
+  const colW = (width - gap * (cols - 1)) / cols;
+  const maxItems = Math.max(...counts);
+  const minItems = Math.min(...counts);
+  const maxH = (height - gap * (maxItems - 1)) / maxItems;
+  const minH = (height - gap * (minItems - 1)) / minItems;
+  const aspectScore = Math.abs((colW / maxH) - 1) + Math.abs((colW / minH) - 1) * 0.5;
+  const balanceScore = (maxItems - minItems) * 0.08;
+  return aspectScore + balanceScore;
+}
+
+function chooseBestRowCount(count, width, height, gap){
+  let bestRows = 1;
+  let bestScore = Infinity;
+  for(let rows=1; rows<=count; rows++){
+    const score = scoreRowLayout(count, width, height, gap, rows);
+    if(score < bestScore){ bestScore = score; bestRows = rows; }
   }
-  return {cols:Math.max(1,cols), rows:Math.max(1,rows)};
+  return bestRows;
+}
+
+function chooseBestColumnCount(count, width, height, gap){
+  let bestCols = 1;
+  let bestScore = Infinity;
+  for(let cols=1; cols<=count; cols++){
+    const score = scoreColumnLayout(count, width, height, gap, cols);
+    if(score < bestScore){ bestScore = score; bestCols = cols; }
+  }
+  return bestCols;
 }
 
 function buildUniformGridRects(count, width, height, gap, prefer="auto"){
-  const cfg = getAutoGrid(count, prefer);
-  const cellW = (width - gap * (cfg.cols - 1)) / cfg.cols;
-  const cellH = (height - gap * (cfg.rows - 1)) / cfg.rows;
-  const rects = [];
-  for(let i=0;i<count;i++){
-    const col = i % cfg.cols;
-    const row = Math.floor(i / cfg.cols);
-    rects.push({x:col*(cellW+gap), y:row*(cellH+gap), w:cellW, h:cellH});
+  count = Math.max(1, count || 1);
+  if(prefer === "h"){
+    return buildDenseRowRects(count, width, height, gap, chooseBestRowCount(count, width, height, gap));
   }
-  return rects;
+  if(prefer === "v"){
+    return buildDenseColumnRects(count, width, height, gap, chooseBestColumnCount(count, width, height, gap));
+  }
+  const rowChoice = chooseBestRowCount(count, width, height, gap);
+  const colChoice = chooseBestColumnCount(count, width, height, gap);
+  const rowScore = scoreRowLayout(count, width, height, gap, rowChoice);
+  const colScore = scoreColumnLayout(count, width, height, gap, colChoice);
+  return rowScore <= colScore
+    ? buildDenseRowRects(count, width, height, gap, rowChoice)
+    : buildDenseColumnRects(count, width, height, gap, colChoice);
 }
 
 function buildStripRects(count,width,height,gap,direction){
@@ -877,8 +951,11 @@ function buildMosaicRects(count,width,height,gap,variant=1){
 }
 
 function availableGridLayouts(count){
+  if(count <= 1) return [["gridAuto","單張滿版"]];
   const list=[
     ["gridAuto","平均排列"],
+    ["gridStripV","直向並排"],
+    ["gridStripH","橫向並排"],
     ["gridMainLeft","左主圖"],
     ["gridMainRight","右主圖"],
     ["gridMainTop","上主圖"],
@@ -886,7 +963,6 @@ function availableGridLayouts(count){
     ["gridMosaic1","上下變化"],
     ["gridMosaic2","左右變化"]
   ];
-  if(count<=6){ list.splice(1,0,["gridStripV","直向並排"],["gridStripH","橫向並排"]); }
   return list;
 }
 
