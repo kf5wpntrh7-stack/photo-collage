@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>圖片拼接網頁版 v6.1</title>
+<title>圖片拼接網頁版 v6.3</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -393,6 +393,15 @@ body.editor-locked{
   .ratio-scroll{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}
   .ratio-btn{min-width:0}
 }
+
+.dynamic-layouts{display:flex;gap:8px;overflow-x:auto;padding:8px 12px 12px;scrollbar-width:none}
+.dynamic-layouts::-webkit-scrollbar{display:none}
+.dynamic-layout-btn{flex:0 0 94px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:7px 5px;color:var(--text)}
+.dynamic-layout-btn.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.layout-mini{position:relative;width:54px;height:44px;margin:0 auto 6px;border:1px solid currentColor;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.3)}
+.layout-mini-cell{position:absolute;background:currentColor;opacity:.72;border-radius:1px}
+.dynamic-layout-label{font-size:11px;font-weight:800;white-space:nowrap}
+@media(min-width:980px){.dynamic-layouts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}.dynamic-layout-btn{width:100%;min-width:0;flex:none}}
 </style>
 </head>
 <body>
@@ -400,7 +409,7 @@ body.editor-locked{
   <div class="header-row">
     <div>
       <h1>🖼️ 圖片拼接網頁版</h1>
-      <div class="subtitle">v6.1・佈局比例＋不限張數拼接</div>
+      <div class="subtitle">6.3版本</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -461,29 +470,7 @@ body.editor-locked{
         <div class="layout-section-label">格子版型</div>
         <div class="compact-note" style="padding:4px 0 0">佈局會依你目前選的照片張數自動分格，5 張、8 張都可以。</div>
       </div>
-      <div class="layout-scroll">
-        <button class="layout" data-layout="gridAuto" onclick="setLayout('gridAuto',this)">
-          <div class="layout-icon icon-4"><span></span><span></span><span></span><span></span></div><div class="layout-label">自動</div>
-        </button>
-        <button class="layout" data-layout="gridFlowV" onclick="setLayout('gridFlowV',this)">
-          <div class="layout-icon icon-6"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">直向分格</div>
-        </button>
-        <button class="layout" data-layout="gridFlowH" onclick="setLayout('gridFlowH',this)">
-          <div class="layout-icon icon-6h"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="layout-label">橫向分格</div>
-        </button>
-        <button class="layout" data-layout="gridMainLeft" onclick="setLayout('gridMainLeft',this)">
-          <div class="layout-icon icon-h"><span style="flex:2"></span><span style="flex:1"></span></div><div class="layout-label">左主圖</div>
-        </button>
-        <button class="layout" data-layout="gridMainTop" onclick="setLayout('gridMainTop',this)">
-          <div class="layout-icon icon-v"><span style="flex:2"></span><span style="flex:1"></span></div><div class="layout-label">上主圖</div>
-        </button>
-        <button class="layout" data-layout="gridMainRight" onclick="setLayout('gridMainRight',this)">
-          <div class="layout-icon icon-h"><span style="flex:1"></span><span style="flex:2"></span></div><div class="layout-label">右主圖</div>
-        </button>
-        <button class="layout" data-layout="gridMainBottom" onclick="setLayout('gridMainBottom',this)">
-          <div class="layout-icon icon-v"><span style="flex:1"></span><span style="flex:2"></span></div><div class="layout-label">下主圖</div>
-        </button>
-      </div>
+      <div id="dynamicLayouts" class="dynamic-layouts"></div>
     </div>
 <div id="capacityNote" class="capacity"></div>
   </section>
@@ -569,6 +556,17 @@ const state = {
 };
 const capacities = {};
 const joinCaps = {};
+const layoutVariants = [
+  {id:"gridAuto",label:"平均排列",type:"auto"},
+  {id:"gridRows",label:"橫向分排",type:"rows"},
+  {id:"gridCols",label:"直向分排",type:"cols"},
+  {id:"gridMainLeft",label:"左側主圖",type:"mainLeft"},
+  {id:"gridMainRight",label:"右側主圖",type:"mainRight"},
+  {id:"gridMainTop",label:"上方主圖",type:"mainTop"},
+  {id:"gridMainBottom",label:"下方主圖",type:"mainBottom"},
+  {id:"gridFirstWide",label:"首圖橫幅",type:"firstWide"},
+  {id:"gridFirstTall",label:"首圖直幅",type:"firstTall"}
+];
 
 const fileInput = document.getElementById("fileInput");
 const previewCanvas = document.getElementById("previewCanvas");
@@ -632,6 +630,56 @@ function loadImage(file){
 
 
 
+function getLayoutRects(layout, count, width, height, gap){
+  count=Math.max(1,count);
+  if(layout==="gridRows") return buildUniformGridRects(count,width,height,gap,"h");
+  if(layout==="gridCols") return buildUniformGridRects(count,width,height,gap,"v");
+  if(["gridMainLeft","gridMainRight","gridMainTop","gridMainBottom"].includes(layout)) return buildFeatureRects(layout,count,width,height,gap);
+  if(layout==="gridFirstWide"){
+    if(count===1) return [{x:0,y:0,w:width,h:height}];
+    const h1=height*.42-gap/2;
+    return [{x:0,y:0,w:width,h:h1},...buildUniformGridRects(count-1,width,height-h1-gap,gap,"h").map(r=>({...r,y:r.y+h1+gap}))];
+  }
+  if(layout==="gridFirstTall"){
+    if(count===1) return [{x:0,y:0,w:width,h:height}];
+    const w1=width*.42-gap/2;
+    return [{x:0,y:0,w:w1,h:height},...buildUniformGridRects(count-1,width-w1-gap,height,gap,"v").map(r=>({...r,x:r.x+w1+gap}))];
+  }
+  return buildUniformGridRects(count,width,height,gap,"auto");
+}
+
+function renderDynamicLayouts(){
+  const root=document.getElementById("dynamicLayouts");
+  if(!root) return;
+  const count=Math.max(1,state.photos.length);
+  const dims=ratioDimensions(state.ratio,100);
+  const scale=Math.min(54/dims.w,44/dims.h);
+  const w=dims.w*scale,h=dims.h*scale;
+  root.innerHTML="";
+  layoutVariants.forEach(v=>{
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="dynamic-layout-btn"+(state.layout===v.id?" active":"");
+    btn.dataset.layout=v.id;
+    const mini=document.createElement("div");
+    mini.className="layout-mini";
+    mini.style.width=w+"px"; mini.style.height=h+"px";
+    const rects=getLayoutRects(v.id,count,w,h,1.5);
+    rects.forEach(r=>{
+      const cell=document.createElement("span");
+      cell.className="layout-mini-cell";
+      cell.style.left=(r.x/w*100)+"%"; cell.style.top=(r.y/h*100)+"%";
+      cell.style.width=(r.w/w*100)+"%"; cell.style.height=(r.h/h*100)+"%";
+      mini.appendChild(cell);
+    });
+    const label=document.createElement("div");
+    label.className="dynamic-layout-label"; label.textContent=v.label;
+    btn.append(mini,label);
+    btn.onclick=()=>setLayout(v.id,btn);
+    root.appendChild(btn);
+  });
+}
+
 function setMode(mode, button){
   state.mode = mode;
   localStorage.setItem("collage_mode", mode);
@@ -640,17 +688,17 @@ function setMode(mode, button){
   document.getElementById("joinLayouts").classList.toggle("active", mode==="join");
   document.getElementById("gridLayouts").classList.toggle("active", mode==="grid");
   if(mode==="grid" && state.fit!=="cover") setFit("cover");
-  const activePanel = mode==="join" ? document.getElementById("joinLayouts") : document.getElementById("gridLayouts");
-  let candidate = activePanel.querySelector(`.layout[data-layout="${state.layout}"]`);
-  if(!candidate) candidate = activePanel.querySelector(".layout");
-  if(!candidate){
-    showToast("版型載入失敗，已恢復預設值");
-    return;
+  if(mode==="join"){
+    const activePanel=document.getElementById("joinLayouts");
+    let candidate=activePanel.querySelector(`.layout[data-layout="${state.layout}"]`) || activePanel.querySelector(".layout");
+    state.layout=candidate.dataset.layout;
+    document.querySelectorAll(".layout").forEach(b=>b.classList.remove("active"));
+    candidate.classList.add("active");
+  }else{
+    if(!layoutVariants.some(v=>v.id===state.layout)) state.layout="gridAuto";
+    renderDynamicLayouts();
   }
-  state.layout = candidate.dataset.layout;
   localStorage.setItem("collage_layout", state.layout);
-  document.querySelectorAll(".layout").forEach(b=>b.classList.remove("active"));
-  candidate.classList.add("active");
   updateCapacityNote();
   document.getElementById("exportBtn").disabled = state.photos.length===0;
   if(state.photos.length) renderPreview();
@@ -659,7 +707,7 @@ function setMode(mode, button){
 function setLayout(layout, button){
   state.layout = layout;
   localStorage.setItem("collage_layout", layout);
-  document.querySelectorAll(".layout").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".layout,.dynamic-layout-btn").forEach(b=>b.classList.remove("active"));
   if(button) button.classList.add("active");
   updateCapacityNote();
   if(state.photos.length) renderPreview();
@@ -679,6 +727,7 @@ function setRatio(ratio, button){
   localStorage.setItem("collage_ratio", ratio);
   document.querySelectorAll(".ratio-btn").forEach(b=>b.classList.remove("active"));
   if(button) button.classList.add("active");
+  if(state.mode==="grid") renderDynamicLayouts();
   schedulePreview();
 }
 
@@ -720,6 +769,7 @@ function renderPhotos(){
   });
   document.getElementById("exportBtn").disabled = state.photos.length===0;
   document.getElementById("emptyPhotoHint").classList.toggle("hidden", state.photos.length>0);
+  if(state.mode==="grid") renderDynamicLayouts();
   updateCapacityNote();
 }
 
@@ -764,9 +814,9 @@ function updateCapacityNote(){
   const note = document.getElementById("capacityNote");
   if(state.mode==="grid"){
     if(state.photos.length){
-      note.textContent = `目前已選 ${state.photos.length} 張；佈局模式會依照片張數自動分格。`;
+      note.textContent = `目前已選 ${state.photos.length} 張；佈局模式會依照片張數提供多種版型。`;
     }else{
-      note.textContent = "佈局模式會依你選的照片張數自動分格，例如 5 張、8 張都可以。";
+      note.textContent = "佈局模式會依你選的照片張數提供多種版型，例如 5 張、8 張都可以。";
     }
     note.classList.add("show");
   }else{
@@ -910,16 +960,7 @@ async function drawCollage(canvas, preview){
     height = dims.h;
     const gap = preview ? gapBase*1.5 : gapBase*4;
     const count = photos.length;
-    let rects;
-    if(state.layout === "gridFlowV"){
-      rects = buildUniformGridRects(count, width, height, gap, "v");
-    }else if(state.layout === "gridFlowH"){
-      rects = buildUniformGridRects(count, width, height, gap, "h");
-    }else if(["gridMainLeft","gridMainRight","gridMainTop","gridMainBottom"].includes(state.layout)){
-      rects = buildFeatureRects(state.layout, count, width, height, gap);
-    }else{
-      rects = buildUniformGridRects(count, width, height, gap, "auto");
-    }
+    const rects = getLayoutRects(state.layout, count, width, height, gap);
     placements = rects.map((r,i)=>({photo:photos[i], ...r, mode:state.fit}));
   }else{
     width = preview ? 720 : 1800;
@@ -1383,7 +1424,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const validRatios = ["3:4","1:1","4:3","2:3","3:2","16:9","9:16","3:5"];
   if(!validRatios.includes(state.ratio)){ state.ratio="3:4"; localStorage.setItem("collage_ratio",state.ratio); }
   const validJoinLayouts = ["vertical","horizontal"];
-  const validGridLayouts = ["gridAuto","gridFlowV","gridFlowH","gridMainLeft","gridMainTop","gridMainRight","gridMainBottom"];
+  const validGridLayouts = layoutVariants.map(v=>v.id);
   if(state.mode==="join" && !validJoinLayouts.includes(state.layout)){ state.layout="vertical"; }
   if(state.mode==="grid" && !validGridLayouts.includes(state.layout)){ state.layout="gridAuto"; }
   document.getElementById("gapRange").value = state.gap;
