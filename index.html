@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>圖片拼接網頁版 v6.8</title>
+<title>圖片拼接網頁版 v6.9</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -300,6 +300,15 @@ body.editor-locked{
   content:"載入照片中…";position:absolute;inset:0;display:grid;place-items:center;
   color:#dbe7ef;background:#0a0f13;font-weight:800;z-index:3
 }
+.editor-context{
+  display:grid;grid-template-columns:minmax(88px,140px) 1fr;align-items:center;gap:10px;
+  margin-bottom:8px;padding:8px;border:1px solid #344551;border-radius:11px;background:#18232c
+}
+.editor-context-canvas{display:grid;place-items:center;min-height:74px}
+#editorContextCanvas{display:block;max-width:100%;max-height:104px;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+.editor-context-copy strong{display:block;color:#fff;font-size:13px}
+.editor-context-copy span{display:block;margin-top:4px;color:#aebdca;font-size:11px;line-height:1.45}
+@media(max-height:720px){.editor-context{grid-template-columns:82px 1fr;padding:6px}#editorContextCanvas{max-height:76px}.edit-note{display:none}}
 
 
 .compact-upload-card{margin-bottom:8px}
@@ -404,7 +413,7 @@ body.editor-locked{
   <div class="header-row">
     <div>
       <h1>🖼️ 圖片拼接網頁版</h1>
-      <div class="subtitle">v6.8・操作邏輯與輸出穩定修正版</div>
+      <div class="subtitle">v6.9・單格調整加入整體版型預覽</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -518,8 +527,12 @@ body.editor-locked{
 <div id="editModal" class="edit-modal" onclick="closeEditorByBackdrop(event)">
   <div class="edit-sheet">
     <div class="edit-grab"></div>
-    <div class="edit-title">調整格子畫面</div>
-    <div class="edit-note">你現在只會調整這一格。直接拖動照片；雙指可縮放。</div>
+    <div class="edit-title" id="editorTitle">調整格子畫面</div>
+    <div class="edit-note">上方可確認照片放回目前版型後的效果；下方直接拖動，雙指可縮放。</div>
+    <div class="editor-context">
+      <div class="editor-context-canvas"><canvas id="editorContextCanvas" width="1" height="1"></canvas></div>
+      <div class="editor-context-copy"><strong>整體版型預覽</strong><span id="editorLayoutInfo">藍框是目前調整的格子</span></div>
+    </div>
     <div id="gestureStatus" class="gesture-status">載入編輯畫面中…</div>
     <div id="editStage" class="edit-stage">
       <img id="editImage" alt="">
@@ -570,6 +583,7 @@ let editorAspect = 1;
 let editorBase = null;
 let editorTempUrl = "";
 let editorOriginal = null;
+let editorContextFrame = 0;
 
 fileInput.addEventListener("change", async (event)=>{
   const files = Array.from(event.target.files || []);
@@ -1233,6 +1247,9 @@ async function openEditor(index, hitbox){
     panY: 0
   };
   editorAspect = hitbox && hitbox.w > 0 && hitbox.h > 0 ? hitbox.w / hitbox.h : 1;
+  const layoutName=(availableGridLayouts(state.photos.length).find(([id])=>id===state.layout)||[state.layout,"目前版型"])[1];
+  document.getElementById("editorTitle").textContent=`調整第 ${index+1} 格畫面`;
+  document.getElementById("editorLayoutInfo").textContent=`${layoutName}・${state.ratio}・第 ${index+1} 格（藍框）`;
 
   const stage = document.getElementById("editStage");
   const img = document.getElementById("editImage");
@@ -1314,6 +1331,43 @@ function updateEditorStage(){
   img.style.width = (editorBase.ow * editorBase.baseScale) + "px";
   img.style.height = (editorBase.oh * editorBase.baseScale) + "px";
   img.style.transform = `translate3d(calc(-50% + ${editorDraft.panX}px), calc(-50% + ${editorDraft.panY}px), 0) scale(${editorDraft.zoom})`;
+  scheduleEditorContext();
+}
+
+function editorDraftPhoto(photo){
+  const m=currentEditorMetrics();
+  const focusX=m&&m.maxX>0?Math.min(1,Math.max(0,0.5-editorDraft.panX/(m.maxX*2))):0.5;
+  const focusY=m&&m.maxY>0?Math.min(1,Math.max(0,0.5-editorDraft.panY/(m.maxY*2))):0.5;
+  return {...photo,focusX,focusY,zoom:editorDraft.zoom};
+}
+
+function scheduleEditorContext(){
+  cancelAnimationFrame(editorContextFrame);
+  editorContextFrame=requestAnimationFrame(drawEditorContext);
+}
+
+function drawEditorContext(){
+  if(editorPhotoIndex<0)return;
+  const canvas=document.getElementById("editorContextCanvas");
+  const dims=ratioDimensions(state.ratio,420);
+  canvas.width=dims.w;canvas.height=dims.h;
+  const ctx=canvas.getContext("2d",{alpha:false});
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+  const gap=Math.max(1,state.gap*.6);
+  const rects=getGridRects(state.layout,state.photos.length,canvas.width,canvas.height,gap);
+  rects.forEach((rect,index)=>{
+    const source=state.photos[index];if(!source)return;
+    const photo=index===editorPhotoIndex?editorDraftPhoto(source):source;
+    drawImageInBox(ctx,photo,rect.x,rect.y,rect.w,rect.h,state.fit,Math.min(state.radius,10));
+  });
+  const selected=rects[editorPhotoIndex];
+  if(selected){
+    ctx.save();ctx.strokeStyle="#36a3ff";ctx.lineWidth=Math.max(4,canvas.width/110);
+    ctx.strokeRect(selected.x+2,selected.y+2,Math.max(0,selected.w-4),Math.max(0,selected.h-4));
+    ctx.fillStyle="#36a3ff";ctx.beginPath();ctx.arc(selected.x+15,selected.y+15,11,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(String(editorPhotoIndex+1),selected.x+15,selected.y+15);ctx.restore();
+  }
 }
 
 async function editorRotateBy(delta){
@@ -1401,6 +1455,7 @@ function closeEditor(commit=false){
   document.getElementById("editModal").classList.remove("show");
   unlockPageFromEditor();
   editorPhotoIndex = -1;
+  cancelAnimationFrame(editorContextFrame);
   editorOriginal = null;
   editorBase = null;
   if(editorTempUrl){
