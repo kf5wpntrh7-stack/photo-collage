@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#263849">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>圖片拼接網頁版 v6.7</title>
+<title>圖片拼接網頁版 v6.8</title>
 <style>
 :root{
   --bg:#eef1f4; --card:#fff; --navy:#263849; --navy2:#3e566c; --line:#dce3e8;
@@ -404,7 +404,7 @@ body.editor-locked{
   <div class="header-row">
     <div>
       <h1>🖼️ 圖片拼接網頁版</h1>
-      <div class="subtitle">v6.7・修正 JPG 輸出按鈕</div>
+      <div class="subtitle">v6.8・操作邏輯與輸出穩定修正版</div>
     </div>
     <button class="reset-top" onclick="resetAll()">清空</button>
   </div>
@@ -569,6 +569,7 @@ let editorDraft = {x:0.5,y:0.5,zoom:1,panX:0,panY:0};
 let editorAspect = 1;
 let editorBase = null;
 let editorTempUrl = "";
+let editorOriginal = null;
 
 fileInput.addEventListener("change", async (event)=>{
   const files = Array.from(event.target.files || []);
@@ -1220,6 +1221,10 @@ async function openEditor(index, hitbox){
   if(!photo) return;
 
   editorPhotoIndex = index;
+  editorOriginal = {
+    rotation:photo.rotation,width:photo.width,height:photo.height,
+    focusX:photo.focusX,focusY:photo.focusY,zoom:photo.zoom
+  };
   editorDraft = {
     x: Number.isFinite(photo.focusX) ? photo.focusX : 0.5,
     y: Number.isFinite(photo.focusY) ? photo.focusY : 0.5,
@@ -1382,14 +1387,21 @@ function saveEditor(){
     photo.focusX = m.maxX > 0 ? Math.min(1,Math.max(0,0.5-editorDraft.panX/(m.maxX*2))) : 0.5;
     photo.focusY = m.maxY > 0 ? Math.min(1,Math.max(0,0.5-editorDraft.panY/(m.maxY*2))) : 0.5;
   }
-  closeEditor();
+  closeEditor(true);
   renderPreview();
 }
 
-function closeEditor(){
+function closeEditor(commit=false){
+  const photo=state.photos[editorPhotoIndex];
+  if(!commit && photo && editorOriginal){
+    Object.assign(photo,editorOriginal);
+    renderPhotos();
+    schedulePreview();
+  }
   document.getElementById("editModal").classList.remove("show");
   unlockPageFromEditor();
   editorPhotoIndex = -1;
+  editorOriginal = null;
   editorBase = null;
   if(editorTempUrl){
     URL.revokeObjectURL(editorTempUrl);
@@ -1400,7 +1412,7 @@ function closeEditor(){
   document.querySelectorAll(".grid-hit").forEach(el=>el.classList.remove("selected"));
 }
 function closeEditorByBackdrop(event){
-  if(event.target.id==="editModal") closeEditor();
+  if(event.target.id==="editModal") closeEditor(false);
 }
 
 const editStage = document.getElementById("editStage");
